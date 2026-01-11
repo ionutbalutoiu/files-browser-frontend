@@ -186,10 +186,12 @@
     border: 0;
   }
 
-  @media (max-width: 600px) {
+  /* Tablet breakpoint */
+  @media (max-width: 768px) {
     .toolbar {
       flex-direction: column;
       align-items: stretch;
+      gap: 0.75rem;
     }
 
     .search-container {
@@ -198,6 +200,35 @@
 
     .sort-controls {
       justify-content: flex-start;
+    }
+  }
+
+  /* Mobile breakpoint */
+  @media (max-width: 480px) {
+    .toolbar {
+      padding: 0.5rem 0;
+    }
+
+    .search-input {
+      padding: 0.6rem 2rem 0.6rem 0.75rem;
+    }
+
+    .sort-controls {
+      gap: 0.4rem;
+    }
+
+    .sort-label {
+      font-size: 0.8rem;
+      flex-basis: 100%;
+      margin-bottom: -0.25rem;
+    }
+
+    .sort-button {
+      padding: 0.5rem 0.6rem;
+      font-size: 0.8rem;
+      flex: 1;
+      text-align: center;
+      min-height: 36px;
     }
   }
 </style>

@@ -241,17 +241,51 @@
     font-style: italic;
   }
 
-  @media (max-width: 600px) {
+  /* Tablet breakpoint */
+  @media (max-width: 768px) {
     .header {
       padding: 0.75rem 1rem;
     }
 
+    .main {
+      padding: 0 1rem 1rem;
+    }
+  }
+
+  /* Mobile breakpoint */
+  @media (max-width: 480px) {
+    .header {
+      padding: 0.6rem 0.75rem;
+    }
+
     .title {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
+      margin-bottom: 0.25rem;
     }
 
     .main {
-      padding: 0 1rem 1rem;
+      padding: 0 0.75rem 0.75rem;
+    }
+
+    .status {
+      padding: 2rem 0.5rem;
+    }
+
+    .error-message {
+      font-size: 1rem;
+    }
+
+    .retry-button {
+      padding: 0.6rem 1.5rem;
+      min-height: 44px;
+    }
+
+    .footer {
+      padding: 0.75rem 0;
+    }
+
+    .count {
+      font-size: 0.8rem;
     }
   }
 </style>

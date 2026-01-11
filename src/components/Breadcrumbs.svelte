@@ -93,4 +93,33 @@
     font-weight: 500;
     padding: 0.25rem 0.5rem;
   }
+
+  /* Mobile breakpoint */
+  @media (max-width: 480px) {
+    .breadcrumbs {
+      padding: 0.25rem 0;
+    }
+
+    ol {
+      gap: 0.15rem;
+    }
+
+    a {
+      padding: 0.35rem 0.4rem;
+      font-size: 0.9rem;
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .current {
+      padding: 0.35rem 0.4rem;
+      font-size: 0.9rem;
+      word-break: break-word;
+    }
+
+    .separator {
+      font-size: 0.85rem;
+    }
+  }
 </style>

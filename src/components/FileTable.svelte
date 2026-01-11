@@ -258,21 +258,53 @@
     font-style: italic;
   }
 
-  @media (max-width: 600px) {
+  /* Tablet breakpoint */
+  @media (max-width: 768px) {
     th, td {
-      padding: 0.5rem 0.5rem;
-    }
-
-    .col-size {
-      min-width: 60px;
+      padding: 0.6rem 0.75rem;
     }
 
     .col-modified {
-      min-width: auto;
+      display: none;
     }
 
-    .date-full {
+    .col-name {
+      min-width: 150px;
+    }
+  }
+
+  /* Mobile breakpoint */
+  @media (max-width: 480px) {
+    .file-table {
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      padding: 0.75rem 0.5rem;
+    }
+
+    .col-name {
+      min-width: 120px;
+      gap: 0.4rem;
+    }
+
+    .col-size {
+      min-width: 55px;
       font-size: 0.8rem;
+    }
+
+    .icon {
+      font-size: 1rem;
+    }
+
+    /* Better touch targets */
+    .file-row {
+      min-height: 44px;
+    }
+
+    .entry-link {
+      padding: 0.25rem 0;
+      display: inline-block;
     }
   }
 </style>
