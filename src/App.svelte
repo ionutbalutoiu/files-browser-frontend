@@ -95,9 +95,11 @@
       search={filter.search}
       {sort}
       {showUpload}
+      {currentPath}
       onSearchChange={handleSearchChange}
       onSortChange={handleSortChange}
       onUploadToggle={toggleUpload}
+      onDirectoryCreated={() => loadDirectory(currentPath)}
     />
 
     {#if showUpload}

@@ -1,16 +1,66 @@
 <script lang="ts">
   import type { SortField, SortState } from '../lib/sortFilter';
+  import { createDirectory, type CreateDirectoryError } from '../lib/upload';
 
   interface Props {
     search: string;
     sort: SortState;
     showUpload: boolean;
+    currentPath: string;
     onSearchChange: (search: string) => void;
     onSortChange: (field: SortField) => void;
     onUploadToggle: () => void;
+    onDirectoryCreated: () => void;
   }
 
-  let { search, sort, showUpload, onSearchChange, onSortChange, onUploadToggle }: Props = $props();
+  let { search, sort, showUpload, currentPath, onSearchChange, onSortChange, onUploadToggle, onDirectoryCreated }: Props = $props();
+
+  // New folder state
+  let showNewFolder = $state(false);
+  let newFolderName = $state('');
+  let creating = $state(false);
+  let createError = $state<string | null>(null);
+
+  function startNewFolder() {
+    showNewFolder = true;
+    newFolderName = '';
+    createError = null;
+  }
+
+  function cancelNewFolder() {
+    showNewFolder = false;
+    newFolderName = '';
+    createError = null;
+  }
+
+  async function handleCreateFolder() {
+    if (!newFolderName.trim()) {
+      createError = 'Please enter a folder name';
+      return;
+    }
+
+    creating = true;
+    createError = null;
+
+    try {
+      await createDirectory(currentPath, newFolderName.trim());
+      showNewFolder = false;
+      newFolderName = '';
+      onDirectoryCreated();
+    } catch (err) {
+      createError = (err as CreateDirectoryError).message;
+    } finally {
+      creating = false;
+    }
+  }
+
+  function handleFolderKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      handleCreateFolder();
+    } else if (event.key === 'Escape') {
+      cancelNewFolder();
+    }
+  }
 
   function handleSearchInput(event: Event) {
     const target = event.target as HTMLInputElement;
@@ -78,17 +128,63 @@
     {/each}
   </div>
 
-  <button
-    type="button"
-    class="upload-button"
-    class:active={showUpload}
-    onclick={onUploadToggle}
-    aria-expanded={showUpload}
-    aria-controls="upload-panel"
-  >
-    <span class="upload-icon" aria-hidden="true">{showUpload ? '✕' : '↑'}</span>
-    <span class="upload-text">{showUpload ? 'Close' : 'Upload'}</span>
-  </button>
+  <div class="action-buttons">
+    {#if showNewFolder}
+      <div class="new-folder-input">
+        <input
+          type="text"
+          bind:value={newFolderName}
+          placeholder="Folder name"
+          disabled={creating}
+          onkeydown={handleFolderKeydown}
+          class="folder-name-input"
+          class:has-error={createError}
+        />
+        <button
+          type="button"
+          class="folder-action-btn confirm"
+          onclick={handleCreateFolder}
+          disabled={creating || !newFolderName.trim()}
+          aria-label="Create folder"
+        >
+          {creating ? '...' : '✓'}
+        </button>
+        <button
+          type="button"
+          class="folder-action-btn cancel"
+          onclick={cancelNewFolder}
+          disabled={creating}
+          aria-label="Cancel"
+        >
+          ✕
+        </button>
+      </div>
+      {#if createError}
+        <span class="create-error" role="alert">{createError}</span>
+      {/if}
+    {:else}
+      <button
+        type="button"
+        class="new-folder-button"
+        onclick={startNewFolder}
+      >
+        <span class="folder-icon" aria-hidden="true">📁</span>
+        <span class="folder-text">New Folder</span>
+      </button>
+    {/if}
+
+    <button
+      type="button"
+      class="upload-button"
+      class:active={showUpload}
+      onclick={onUploadToggle}
+      aria-expanded={showUpload}
+      aria-controls="upload-panel"
+    >
+      <span class="upload-icon" aria-hidden="true">{showUpload ? '✕' : '↑'}</span>
+      <span class="upload-text">{showUpload ? 'Close' : 'Upload'}</span>
+    </button>
+  </div>
 </div>
 
 <style>
@@ -189,6 +285,120 @@
     font-weight: 500;
   }
 
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+
+  .new-folder-button {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .new-folder-button:hover {
+    background: var(--color-hover);
+    border-color: var(--color-border-hover);
+  }
+
+  .new-folder-button:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .folder-icon {
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+
+  .new-folder-input {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .folder-name-input {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-input-bg);
+    color: var(--color-text);
+    width: 150px;
+    transition: border-color 0.15s;
+  }
+
+  .folder-name-input:focus {
+    outline: none;
+    border-color: var(--color-focus);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+  }
+
+  .folder-name-input.has-error {
+    border-color: var(--color-error, #dc3545);
+  }
+
+  .folder-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .folder-action-btn:hover:not(:disabled) {
+    background: var(--color-hover);
+  }
+
+  .folder-action-btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .folder-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .folder-action-btn.confirm {
+    color: var(--color-success, #28a745);
+    border-color: var(--color-success, #28a745);
+  }
+
+  .folder-action-btn.confirm:hover:not(:disabled) {
+    background: rgba(40, 167, 69, 0.1);
+  }
+
+  .folder-action-btn.cancel {
+    color: var(--color-muted);
+  }
+
+  .create-error {
+    font-size: 0.8rem;
+    color: var(--color-error, #dc3545);
+    white-space: nowrap;
+  }
+
   .upload-button {
     display: flex;
     align-items: center;
@@ -202,7 +412,6 @@
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
-    margin-left: auto;
   }
 
   .upload-button:hover {
@@ -258,7 +467,7 @@
       order: 2;
     }
 
-    .upload-button {
+    .action-buttons {
       order: 3;
       margin-left: 0;
     }
@@ -294,6 +503,20 @@
       padding: 0.45rem 0.6rem;
       font-size: 0.8rem;
       min-height: 36px;
+    }
+
+    .new-folder-button {
+      padding: 0.45rem 0.6rem;
+      font-size: 0.8rem;
+      min-height: 36px;
+    }
+
+    .folder-text {
+      display: none;
+    }
+
+    .folder-name-input {
+      width: 120px;
     }
 
     .upload-text {
