@@ -3,6 +3,7 @@
   import type { SortField, SortState } from '../lib/sortFilter';
   import { formatSize, formatDate } from '../lib/format';
   import { getFileUrl, getDirectoryUrl } from '../lib/api';
+  import { deleteFile, getDeletePath, type DeleteError } from '../lib/upload';
 
   interface Props {
     entries: NginxEntry[];
@@ -10,9 +11,18 @@
     sort: SortState;
     onNavigate: (path: string) => void;
     onSortChange: (field: SortField) => void;
+    onDelete: () => void;
   }
 
-  let { entries, currentPath, sort, onNavigate, onSortChange }: Props = $props();
+  let { entries, currentPath, sort, onNavigate, onSortChange, onDelete }: Props = $props();
+
+  // Track which menu is open (by entry name)
+  let openMenu = $state<string | null>(null);
+  let deleting = $state<string | null>(null);
+  let deleteError = $state<{ name: string; message: string } | null>(null);
+
+  // Confirmation dialog state
+  let confirmEntry = $state<NginxEntry | null>(null);
 
   function handleDirectoryClick(entry: NginxEntry, event: MouseEvent) {
     event.preventDefault();
@@ -51,7 +61,73 @@
       onSortChange(field);
     }
   }
+
+  function toggleMenu(entryName: string, event: MouseEvent) {
+    event.stopPropagation();
+    openMenu = openMenu === entryName ? null : entryName;
+    deleteError = null;
+  }
+
+  function closeMenu() {
+    openMenu = null;
+  }
+
+  function handleMenuKeydown(entryName: string, event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      event.stopPropagation();
+      openMenu = openMenu === entryName ? null : entryName;
+    } else if (event.key === 'Escape') {
+      openMenu = null;
+    }
+  }
+
+  function requestDelete(entry: NginxEntry) {
+    openMenu = null;
+    confirmEntry = entry;
+  }
+
+  function cancelDelete() {
+    confirmEntry = null;
+  }
+
+  function handleDialogKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      cancelDelete();
+    }
+  }
+
+  async function confirmDelete() {
+    if (!confirmEntry) return;
+    
+    const entry = confirmEntry;
+    confirmEntry = null;
+    deleting = entry.name;
+    deleteError = null;
+
+    try {
+      const path = getDeletePath(currentPath, entry.name);
+      await deleteFile(path);
+      onDelete();
+    } catch (err) {
+      deleteError = {
+        name: entry.name,
+        message: (err as DeleteError).message,
+      };
+    } finally {
+      deleting = null;
+    }
+  }
+
+  // Close menu when clicking outside
+  function handleDocumentClick() {
+    if (openMenu) {
+      openMenu = null;
+    }
+  }
 </script>
+
+<svelte:document onclick={handleDocumentClick} />
 
 <div class="table-container">
   <table class="file-table" role="grid">
@@ -93,18 +169,22 @@
         >
           Modified{getSortIndicator('mtime')}
         </th>
+        <th scope="col" class="col-actions">
+          <span class="visually-hidden">Actions</span>
+        </th>
       </tr>
     </thead>
     <tbody>
       {#if entries.length === 0}
         <tr class="empty-row">
-          <td colspan="3">No files found</td>
+          <td colspan="4">No files found</td>
         </tr>
       {:else}
         {#each entries as entry (entry.name)}
           <tr 
             class="file-row" 
             class:directory={entry.type === 'directory'}
+            class:has-error={deleteError?.name === entry.name}
             tabindex="0"
             onkeydown={(e) => handleKeydown(entry, e)}
           >
@@ -128,6 +208,9 @@
                   {entry.name}
                 </a>
               {/if}
+              {#if deleteError?.name === entry.name}
+                <span class="delete-error" role="alert">{deleteError.message}</span>
+              {/if}
             </td>
             <td class="col-size">
               {entry.type === 'directory' ? '—' : formatSize(entry.size)}
@@ -135,12 +218,95 @@
             <td class="col-modified">
               <span class="date-full">{formatDate(entry.mtime)}</span>
             </td>
+            <td class="col-actions">
+              <div class="action-menu">
+                <button
+                  type="button"
+                  class="menu-trigger"
+                  class:active={openMenu === entry.name}
+                  onclick={(e) => toggleMenu(entry.name, e)}
+                  onkeydown={(e) => handleMenuKeydown(entry.name, e)}
+                  aria-haspopup="menu"
+                  aria-expanded={openMenu === entry.name}
+                  aria-label="Actions for {entry.name}"
+                  disabled={deleting === entry.name}
+                >
+                  {#if deleting === entry.name}
+                    <span class="spinner-small"></span>
+                  {:else}
+                    ⋮
+                  {/if}
+                </button>
+                {#if openMenu === entry.name}
+                  <div class="menu-dropdown" role="menu">
+                    <button
+                      type="button"
+                      class="menu-item delete"
+                      onclick={() => requestDelete(entry)}
+                      role="menuitem"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
+                {/if}
+              </div>
+            </td>
           </tr>
         {/each}
       {/if}
     </tbody>
   </table>
 </div>
+
+<!-- Confirmation Dialog -->
+{#if confirmEntry}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div 
+    class="dialog-overlay" 
+    onclick={cancelDelete}
+    onkeydown={handleDialogKeydown}
+    role="presentation"
+  >
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div 
+      class="dialog" 
+      role="alertdialog" 
+      aria-modal="true"
+      aria-labelledby="dialog-title"
+      aria-describedby="dialog-description"
+      tabindex="0"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+    >
+      <h2 id="dialog-title" class="dialog-title">
+        {confirmEntry.type === 'directory' ? 'Delete Folder' : 'Delete File'}
+      </h2>
+      <p id="dialog-description" class="dialog-message">
+        {#if confirmEntry.type === 'directory'}
+          Delete folder <strong>"{confirmEntry.name}"</strong>? It must be empty.
+        {:else}
+          Delete <strong>"{confirmEntry.name}"</strong>? This cannot be undone.
+        {/if}
+      </p>
+      <div class="dialog-actions">
+        <button 
+          type="button" 
+          class="dialog-btn cancel" 
+          onclick={cancelDelete}
+        >
+          Cancel
+        </button>
+        <button 
+          type="button" 
+          class="dialog-btn confirm" 
+          onclick={confirmDelete}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .table-container {
@@ -212,11 +378,16 @@
     font-weight: 500;
   }
 
+  .file-row.has-error {
+    background: var(--color-error-bg, rgba(220, 53, 69, 0.1));
+  }
+
   .col-name {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     min-width: 200px;
+    flex-wrap: wrap;
   }
 
   .icon {
@@ -239,6 +410,14 @@
     outline-offset: 2px;
   }
 
+  .delete-error {
+    flex-basis: 100%;
+    font-size: 0.8rem;
+    color: var(--color-error, #dc3545);
+    margin-top: 0.25rem;
+    padding-left: 1.6rem;
+  }
+
   .col-size {
     white-space: nowrap;
     color: var(--color-muted);
@@ -249,6 +428,125 @@
     white-space: nowrap;
     color: var(--color-muted);
     min-width: 150px;
+  }
+
+  .col-actions {
+    width: 48px;
+    text-align: center;
+    padding: 0.4rem;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .action-menu {
+    position: relative;
+    display: inline-block;
+  }
+
+  .menu-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-muted);
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+
+  .menu-trigger:hover {
+    background: var(--color-hover);
+    color: var(--color-text);
+  }
+
+  .menu-trigger:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .menu-trigger.active {
+    background: var(--color-hover);
+    color: var(--color-text);
+  }
+
+  .menu-trigger:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .spinner-small {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--color-link);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 120px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    overflow: hidden;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: none;
+    background: transparent;
+    color: var(--color-text);
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .menu-item:hover {
+    background: var(--color-hover);
+  }
+
+  .menu-item:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+
+  .menu-item.delete {
+    color: var(--color-error, #dc3545);
+  }
+
+  .menu-item.delete:hover {
+    background: var(--color-error-bg, rgba(220, 53, 69, 0.1));
   }
 
   .empty-row td {
@@ -270,6 +568,10 @@
 
     .col-name {
       min-width: 150px;
+    }
+
+    .col-actions {
+      width: 40px;
     }
   }
 
@@ -305,6 +607,132 @@
     .entry-link {
       padding: 0.25rem 0;
       display: inline-block;
+    }
+
+    .menu-trigger {
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  /* ===================================
+     Confirmation Dialog
+     =================================== */
+
+  .dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: fadeIn 0.15s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .dialog {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 100%;
+    padding: 1.5rem;
+    animation: slideIn 0.15s ease-out;
+  }
+
+  @keyframes slideIn {
+    from { 
+      opacity: 0;
+      transform: scale(0.95) translateY(-10px);
+    }
+    to { 
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .dialog-title {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .dialog-message {
+    margin: 0 0 1.5rem 0;
+    font-size: 0.95rem;
+    color: var(--color-muted);
+    line-height: 1.5;
+  }
+
+  .dialog-message strong {
+    color: var(--color-text);
+    font-weight: 600;
+    word-break: break-word;
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  .dialog-btn {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+
+  .dialog-btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .dialog-btn.cancel {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+  }
+
+  .dialog-btn.cancel:hover {
+    background: var(--color-hover);
+    border-color: var(--color-border-hover);
+  }
+
+  .dialog-btn.confirm {
+    background: var(--color-error, #dc3545);
+    border: 1px solid var(--color-error, #dc3545);
+    color: white;
+  }
+
+  .dialog-btn.confirm:hover {
+    background: #c82333;
+    border-color: #c82333;
+  }
+
+  /* Mobile dialog adjustments */
+  @media (max-width: 480px) {
+    .dialog {
+      padding: 1.25rem;
+    }
+
+    .dialog-actions {
+      flex-direction: column-reverse;
+    }
+
+    .dialog-btn {
+      width: 100%;
+      padding: 0.75rem;
     }
   }
 </style>

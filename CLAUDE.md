@@ -31,11 +31,13 @@ src/
 │   ├── api.ts              # HTTP fetching, URL building
 │   ├── router.ts           # Hash-based routing utilities
 │   ├── sortFilter.ts       # Sort/filter logic, always dirs-first
-│   └── format.ts           # Human-readable size/date formatting
+│   ├── format.ts           # Human-readable size/date formatting
+│   └── upload.ts           # File upload API with progress
 └── components/
     ├── Breadcrumbs.svelte  # Clickable path navigation
     ├── Toolbar.svelte      # Search input + sort buttons
-    └── FileTable.svelte    # File/directory listing table
+    ├── FileTable.svelte    # File/directory listing table
+    └── UploadPanel.svelte  # Drag-and-drop file upload UI
 ```
 
 ---
@@ -119,8 +121,10 @@ interface Props {
 interface Props {
   search: string;
   sort: SortState;
+  showUpload: boolean;
   onSearchChange: (search: string) => void;
   onSortChange: (field: SortField) => void;
+  onUploadToggle: () => void;
 }
 ```
 
@@ -132,6 +136,15 @@ interface Props {
   sort: SortState;
   onNavigate: (path: string) => void;
   onSortChange: (field: SortField) => void;
+  onDelete: () => void;  // called after successful delete to refresh
+}
+```
+
+### UploadPanel
+```typescript
+interface Props {
+  currentPath: string;
+  onUploadComplete: () => void;
 }
 ```
 
@@ -178,12 +191,87 @@ let loading = $state(true);
 let error = $state<FetchError | null>(null);
 let sort = $state<SortState>({ field: 'name', direction: 'asc' });
 let filter = $state<FilterState>({ search: '' });
+let showUpload = $state(false);
 
 // Derived
 let processedEntries = $derived(processEntries(entries, filter, sort));
 ```
 
 Sort and filter state persist across navigation (not reset on path change).
+
+---
+
+## Delete Feature
+
+### API
+- Endpoint: `DELETE /delete/{path}`
+- Response codes:
+  - 200/204: Success
+  - 404: File not found
+  - 409: Directory not empty
+  - 403: Permission denied
+  - 500: Server error
+
+### Delete Types (lib/upload.ts)
+```typescript
+interface DeleteError {
+  message: string;
+  status?: number;
+}
+```
+
+### Delete Functions
+- `deleteFile(path)` → sends DELETE request
+- `getDeletePath(currentPath, name)` → builds full path for deletion
+
+### Delete UI Flow
+1. Each file/folder row has a ⋮ (three-dots) menu button
+2. Click opens dropdown with "Delete" option
+3. Confirmation dialog appears with appropriate message
+4. On confirm → send DELETE request
+5. On success → refresh directory listing
+6. On error → show inline error message in the row
+
+### Delete State (FileTable.svelte)
+- `openMenu` → tracks which entry's menu is open
+- `deleting` → tracks which entry is being deleted (shows spinner)
+- `deleteError` → stores error for display
+
+---
+
+## Upload Feature
+
+### API
+- Endpoint: `POST /upload/{path}/`
+- Request: `multipart/form-data` with `files` field
+- Response: `{ uploaded: string[], skipped: string[], errors?: string[] }`
+
+### Upload Types
+```typescript
+interface UploadResult {
+  uploaded: string[];
+  skipped: string[];
+  errors?: string[];
+}
+
+interface UploadError {
+  message: string;
+}
+```
+
+### Upload Functions (lib/upload.ts)
+- `uploadFiles(files, path)` → basic upload
+- `uploadFilesWithProgress(files, path, onProgress)` → with progress callback
+- `validateFiles(files)` → client-side validation (size, hidden files)
+- `formatTotalSize(files)` → human-readable total size
+
+### Upload Flow
+1. User clicks "Upload" button → shows UploadPanel
+2. Drag-and-drop or click to select files
+3. Client-side validation runs
+4. Upload with XHR for progress tracking
+5. On success → refresh directory listing
+6. Shows results: uploaded, skipped, errors
 
 ---
 
@@ -254,9 +342,11 @@ location /files/ {
 | `lib/router.ts` | Routing | `initRouter()`, `navigateTo()`, `onRouteChange()`, `parseBreadcrumbs()` |
 | `lib/sortFilter.ts` | Data processing | `processEntries()`, `toggleSort()`, types |
 | `lib/format.ts` | Formatting | `formatSize()`, `formatDate()` |
+| `lib/upload.ts` | Upload API | `uploadFilesWithProgress()`, `validateFiles()` |
 | `Breadcrumbs.svelte` | Navigation UI | Path segments as links |
 | `Toolbar.svelte` | Controls | Search input, sort buttons |
 | `FileTable.svelte` | Main listing | Sortable table, file/dir links |
+| `UploadPanel.svelte` | Upload UI | Drag-and-drop, progress, results |
 
 ---
 

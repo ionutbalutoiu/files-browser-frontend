@@ -8,6 +8,7 @@
   import Breadcrumbs from './components/Breadcrumbs.svelte';
   import Toolbar from './components/Toolbar.svelte';
   import FileTable from './components/FileTable.svelte';
+  import UploadPanel from './components/UploadPanel.svelte';
 
   // State
   let currentPath = $state('/');
@@ -18,6 +19,9 @@
   // Sort and filter state (preserved across navigation)
   let sort = $state<SortState>({ ...DEFAULT_SORT });
   let filter = $state<FilterState>({ ...DEFAULT_FILTER });
+  
+  // Upload panel visibility
+  let showUpload = $state(false);
 
   // Derived: processed entries with filter and sort applied
   let processedEntries = $derived(processEntries(entries, filter, sort));
@@ -54,6 +58,16 @@
     filter = { search };
   }
 
+  // Toggle upload panel
+  function toggleUpload() {
+    showUpload = !showUpload;
+  }
+
+  // Refresh after upload
+  function handleUploadComplete() {
+    loadDirectory(currentPath);
+  }
+
   // Initialize on mount
   onMount(() => {
     const initialPath = initRouter();
@@ -80,9 +94,20 @@
     <Toolbar 
       search={filter.search}
       {sort}
+      {showUpload}
       onSearchChange={handleSearchChange}
       onSortChange={handleSortChange}
+      onUploadToggle={toggleUpload}
     />
+
+    {#if showUpload}
+      <div id="upload-panel">
+        <UploadPanel 
+          {currentPath} 
+          onUploadComplete={handleUploadComplete} 
+        />
+      </div>
+    {/if}
 
     {#if loading}
       <div class="status loading">
@@ -111,6 +136,7 @@
         {sort}
         onNavigate={handleNavigate}
         onSortChange={handleSortChange}
+        onDelete={() => loadDirectory(currentPath)}
       />
       
       <footer class="footer">

@@ -4,11 +4,13 @@
   interface Props {
     search: string;
     sort: SortState;
+    showUpload: boolean;
     onSearchChange: (search: string) => void;
     onSortChange: (field: SortField) => void;
+    onUploadToggle: () => void;
   }
 
-  let { search, sort, onSearchChange, onSortChange }: Props = $props();
+  let { search, sort, showUpload, onSearchChange, onSortChange, onUploadToggle }: Props = $props();
 
   function handleSearchInput(event: Event) {
     const target = event.target as HTMLInputElement;
@@ -62,7 +64,7 @@
   </div>
 
   <div class="sort-controls">
-    <span class="sort-label">Sort by:</span>
+    <span class="sort-label">Sort:</span>
     {#each ['name', 'size', 'mtime'] as field}
       <button
         type="button"
@@ -75,6 +77,18 @@
       </button>
     {/each}
   </div>
+
+  <button
+    type="button"
+    class="upload-button"
+    class:active={showUpload}
+    onclick={onUploadToggle}
+    aria-expanded={showUpload}
+    aria-controls="upload-panel"
+  >
+    <span class="upload-icon" aria-hidden="true">{showUpload ? '✕' : '↑'}</span>
+    <span class="upload-text">{showUpload ? 'Close' : 'Upload'}</span>
+  </button>
 </div>
 
 <style>
@@ -175,6 +189,47 @@
     font-weight: 500;
   }
 
+  .upload-button {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-link);
+    border-radius: 6px;
+    background: var(--color-link);
+    color: white;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    margin-left: auto;
+  }
+
+  .upload-button:hover {
+    opacity: 0.9;
+  }
+
+  .upload-button:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .upload-button.active {
+    background: var(--color-bg);
+    color: var(--color-text);
+    border-color: var(--color-border);
+  }
+
+  .upload-button.active:hover {
+    background: var(--color-hover);
+    opacity: 1;
+  }
+
+  .upload-icon {
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+
   .visually-hidden {
     position: absolute;
     width: 1px;
@@ -189,17 +244,23 @@
   /* Tablet breakpoint */
   @media (max-width: 768px) {
     .toolbar {
-      flex-direction: column;
-      align-items: stretch;
+      flex-wrap: wrap;
       gap: 0.75rem;
     }
 
     .search-container {
+      flex: 1 1 100%;
       max-width: none;
+      order: 1;
     }
 
     .sort-controls {
-      justify-content: flex-start;
+      order: 2;
+    }
+
+    .upload-button {
+      order: 3;
+      margin-left: 0;
     }
   }
 
@@ -207,6 +268,7 @@
   @media (max-width: 480px) {
     .toolbar {
       padding: 0.5rem 0;
+      gap: 0.5rem;
     }
 
     .search-input {
@@ -214,21 +276,32 @@
     }
 
     .sort-controls {
-      gap: 0.4rem;
+      flex: 1;
+      gap: 0.35rem;
     }
 
     .sort-label {
-      font-size: 0.8rem;
-      flex-basis: 100%;
-      margin-bottom: -0.25rem;
+      display: none;
     }
 
     .sort-button {
-      padding: 0.5rem 0.6rem;
+      padding: 0.45rem 0.5rem;
       font-size: 0.8rem;
-      flex: 1;
-      text-align: center;
       min-height: 36px;
+    }
+
+    .upload-button {
+      padding: 0.45rem 0.6rem;
+      font-size: 0.8rem;
+      min-height: 36px;
+    }
+
+    .upload-text {
+      display: none;
+    }
+
+    .upload-icon {
+      font-size: 1rem;
     }
   }
 </style>
