@@ -29,6 +29,7 @@
   let renameValue = $state('');
   let renameError = $state<{ name: string; message: string } | null>(null);
   let renameInputRef = $state<HTMLInputElement | null>(null);
+  let renaming = $state(false);
 
   function handleDirectoryClick(entry: NginxEntry, event: MouseEvent) {
     event.preventDefault();
@@ -185,7 +186,7 @@
       return;
     }
 
-    renamingEntry = null;
+    renaming = true;
 
     try {
       const oldPath = getDeletePath(currentPath, originalName);
@@ -197,12 +198,15 @@
         entries = [...entries]; // Trigger reactivity
       }
       renameError = null;
+      renamingEntry = null;
     } catch (err) {
       renameError = {
         name: originalName,
         message: (err as RenameError).message,
       };
       console.error('Rename failed:', err);
+    } finally {
+      renaming = false;
     }
   }
 
@@ -216,10 +220,15 @@
     }
   }
 
-  function handleRenameBlur(originalName: string) {
+  function handleRenameBlur(originalName: string, event: FocusEvent) {
+    // Check if focus is moving to one of the action buttons
+    const relatedTarget = event.relatedTarget as HTMLElement | null;
+    if (relatedTarget?.closest('.rename-actions')) {
+      return; // Don't cancel if clicking action buttons
+    }
     // Small delay to allow click events to process first
     setTimeout(() => {
-      if (renamingEntry === originalName) {
+      if (renamingEntry === originalName && !renaming) {
         cancelRename();
       }
     }, 150);
@@ -298,16 +307,39 @@
               <span class="icon" aria-hidden="true">{getIcon(entry.type)}</span>
               {#if renamingEntry === entry.name}
                 <div class="rename-container">
-                  <input
-                    type="text"
-                    class="rename-input"
-                    class:has-error={renameError?.name === entry.name}
-                    bind:value={renameValue}
-                    bind:this={renameInputRef}
-                    onkeydown={(e) => handleRenameKeydown(entry.name, e)}
-                    onblur={() => handleRenameBlur(entry.name)}
-                    aria-label="New name for {entry.name}"
-                  />
+                  <div class="rename-input-row">
+                    <input
+                      type="text"
+                      class="rename-input"
+                      class:has-error={renameError?.name === entry.name}
+                      bind:value={renameValue}
+                      bind:this={renameInputRef}
+                      disabled={renaming}
+                      onkeydown={(e) => handleRenameKeydown(entry.name, e)}
+                      onblur={(e) => handleRenameBlur(entry.name, e)}
+                      aria-label="New name for {entry.name}"
+                    />
+                    <div class="rename-actions">
+                      <button
+                        type="button"
+                        class="rename-action-btn confirm"
+                        onclick={() => confirmRename(entry.name)}
+                        disabled={renaming || !renameValue.trim()}
+                        aria-label="Confirm rename"
+                      >
+                        {renaming ? '...' : '✓'}
+                      </button>
+                      <button
+                        type="button"
+                        class="rename-action-btn cancel"
+                        onclick={cancelRename}
+                        disabled={renaming}
+                        aria-label="Cancel rename"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
                   {#if renameError?.name === entry.name}
                     <span class="rename-error" role="alert">{renameError.message}</span>
                   {/if}
@@ -558,6 +590,12 @@
     min-width: 0;
   }
 
+  .rename-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
   .rename-input {
     flex: 1;
     padding: 0.25rem 0.5rem;
@@ -578,6 +616,59 @@
 
   .rename-input.has-error {
     border-color: var(--color-error, #dc3545);
+  }
+
+  .rename-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .rename-actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .rename-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .rename-action-btn:hover:not(:disabled) {
+    background: var(--color-hover);
+  }
+
+  .rename-action-btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .rename-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .rename-action-btn.confirm {
+    color: var(--color-success, #28a745);
+    border-color: var(--color-success, #28a745);
+  }
+
+  .rename-action-btn.confirm:hover:not(:disabled) {
+    background: rgba(40, 167, 69, 0.1);
+  }
+
+  .rename-action-btn.cancel {
+    color: var(--color-muted);
   }
 
   .rename-error {

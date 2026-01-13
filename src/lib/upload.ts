@@ -218,15 +218,14 @@ export interface RenameError {
  * @param newName - New name for the file or directory (just the name, not full path)
  */
 export async function renameFile(oldPath: string, newName: string): Promise<void> {
-  // Normalize path: remove leading slash
-  const normalizedPath = oldPath.replace(/^\//, '');
+  // Normalize path: remove leading/trailing slashes
+  const normalizedPath = oldPath.replace(/^\/+|\/+$/g, '');
 
-  const response = await fetch(`/rename/${normalizedPath}`, {
+  // Encode the new name for the query parameter
+  const encodedNewName = encodeURIComponent(newName.trim());
+
+  const response = await fetch(`/rename/${normalizedPath}?newName=${encodedNewName}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ new_name: newName }),
   });
 
   if (!response.ok) {
