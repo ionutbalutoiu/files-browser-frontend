@@ -496,7 +496,7 @@
           {#if sharing === currentEntry.name}
             <span class="spinner-small"></span> Sharing...
           {:else}
-            🔗 Share Publicly
+            🔗 Share
           {/if}
         </button>
       {/if}

@@ -2,9 +2,11 @@
   import { onMount } from 'svelte';
   import { listSharePublicFiles, type SharePublicFilesError } from '../lib/api';
   import { navigateTo } from '../lib/router';
+  import { getPublicFileUrl } from '../lib/config';
 
   // State
   let sharedFiles = $state<string[]>([]);
+  let copiedPath = $state<string | null>(null);
   let loading = $state(true);
   let error = $state<SharePublicFilesError | null>(null);
 
@@ -41,6 +43,24 @@
   function getDirectory(filePath: string): string {
     const lastSlash = filePath.lastIndexOf('/');
     return lastSlash > 0 ? filePath.substring(0, lastSlash + 1) : '/';
+  }
+
+  // Copy public link to clipboard
+  async function copyLink(filePath: string, event: MouseEvent) {
+    event.stopPropagation();
+    const url = getPublicFileUrl(filePath);
+    try {
+      await navigator.clipboard.writeText(url);
+      copiedPath = filePath;
+      // Reset after 2 seconds
+      setTimeout(() => {
+        if (copiedPath === filePath) {
+          copiedPath = null;
+        }
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
   }
 
   onMount(() => {
@@ -107,19 +127,36 @@
       <ul class="files" role="list">
         {#each sharedFiles as filePath}
           <li class="file-item">
-            <button 
-              type="button"
-              class="file-link"
-              onclick={() => navigateToFile(filePath)}
-              title="Navigate to file location"
-            >
-              <span class="file-icon" aria-hidden="true">📄</span>
-              <span class="file-info">
-                <span class="file-name">{getFileName(filePath)}</span>
-                <span class="file-path">{getDirectory(filePath)}</span>
-              </span>
-              <span class="navigate-icon" aria-hidden="true">→</span>
-            </button>
+            <div class="file-row">
+              <button 
+                type="button"
+                class="file-link"
+                onclick={() => navigateToFile(filePath)}
+                title="Navigate to file location"
+              >
+                <span class="file-icon" aria-hidden="true">📄</span>
+                <span class="file-info">
+                  <span class="file-name">{getFileName(filePath)}</span>
+                  <span class="file-path">{getDirectory(filePath)}</span>
+                </span>
+                <span class="navigate-icon" aria-hidden="true">→</span>
+              </button>
+              <button
+                type="button"
+                class="copy-link-btn"
+                class:copied={copiedPath === filePath}
+                onclick={(e) => copyLink(filePath, e)}
+                title="Copy public link"
+              >
+                {#if copiedPath === filePath}
+                  <span class="copy-icon" aria-hidden="true">✓</span>
+                  <span class="copy-text">Copied!</span>
+                {:else}
+                  <span class="copy-icon" aria-hidden="true">🔗</span>
+                  <span class="copy-text">Copy Link</span>
+                {/if}
+              </button>
+            </div>
           </li>
         {/each}
       </ul>
@@ -297,12 +334,19 @@
     border-bottom: none;
   }
 
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   .file-link {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    width: 100%;
-    padding: 0.75rem 1rem;
+    flex: 1;
+    min-width: 0;
+    padding: 0.75rem 0.75rem 0.75rem 1rem;
     background: none;
     border: none;
     text-align: left;
@@ -320,6 +364,49 @@
   .file-link:focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: -2px;
+  }
+
+  .copy-link-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.65rem;
+    margin-right: 0.75rem;
+    font-size: 0.8rem;
+    font-family: inherit;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-bg);
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .copy-link-btn:hover {
+    background: var(--color-hover);
+    border-color: var(--color-border-hover);
+    color: var(--color-text);
+  }
+
+  .copy-link-btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .copy-link-btn.copied {
+    background: var(--color-active);
+    border-color: var(--color-active-border);
+    color: var(--color-link);
+  }
+
+  .copy-icon {
+    font-size: 0.9rem;
+  }
+
+  .copy-text {
+    font-weight: 500;
   }
 
   .file-icon {
@@ -385,8 +472,20 @@
       padding: 2rem 0.75rem;
     }
 
+    .file-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+    }
+
     .file-link {
       padding: 0.875rem 0.75rem;
+    }
+
+    .copy-link-btn {
+      margin: 0 0.75rem 0.75rem 0.75rem;
+      justify-content: center;
+      padding: 0.5rem 0.75rem;
     }
 
     .file-info {
