@@ -2,6 +2,8 @@
  * File upload API for the files browser.
  */
 
+import { buildApiUrl } from './url';
+
 export interface UploadResult {
   uploaded: string[];
   skipped: string[];
@@ -27,12 +29,10 @@ export async function uploadFiles(
     formData.append('files', file);
   }
 
-  // Normalize path: ensure no leading slash for upload endpoint, add trailing slash
-  const normalizedPath = targetPath
-    .replace(/^\/+/, '')
-    .replace(/\/?$/, '/');
+  // Build upload URL with proper path normalization
+  const uploadUrl = buildApiUrl('/upload', targetPath, true);
 
-  const response = await fetch(`/upload/${normalizedPath}`, {
+  const response = await fetch(uploadUrl, {
     method: 'POST',
     body: formData,
     // Don't set Content-Type - browser sets it with boundary
@@ -73,9 +73,8 @@ export function uploadFilesWithProgress(
       formData.append('files', file);
     }
 
-    const normalizedPath = targetPath
-      .replace(/^\/+/, '')
-      .replace(/\/?$/, '/');
+    // Build upload URL with proper path normalization
+    const uploadUrl = buildApiUrl('/upload', targetPath, true);
 
     const xhr = new XMLHttpRequest();
 
@@ -112,7 +111,7 @@ export function uploadFilesWithProgress(
       reject({ message: 'Upload cancelled' } as UploadError);
     });
 
-    xhr.open('POST', `/upload/${normalizedPath}`);
+    xhr.open('POST', uploadUrl);
     xhr.send(formData);
   });
 }
@@ -166,10 +165,10 @@ export interface DeleteError {
  * @param path - Full path to file or directory (e.g., "/photos/2026/image.jpg")
  */
 export async function deleteFile(path: string): Promise<void> {
-  // Normalize path: remove leading/trailing slashes
-  const normalizedPath = path.replace(/^\/+|\/+$/g, '');
+  // Build delete URL with proper path normalization
+  const deleteUrl = buildApiUrl('/delete', path, false);
 
-  const response = await fetch(`/delete/${normalizedPath}`, {
+  const response = await fetch(deleteUrl, {
     method: 'DELETE',
   });
 
@@ -293,7 +292,10 @@ export async function createDirectory(
     ? `${normalizedParent}/${dirName}`
     : dirName;
 
-  const response = await fetch(`/mkdir/${fullPath}/`, {
+  // Build mkdir URL with proper path normalization
+  const mkdirUrl = buildApiUrl('/mkdir', fullPath, true);
+
+  const response = await fetch(mkdirUrl, {
     method: 'POST',
   });
 

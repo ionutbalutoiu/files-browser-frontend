@@ -1,4 +1,5 @@
 import { parseNginxResponse, type NginxEntry } from './nginxAutoindex';
+import { buildApiUrl } from './url';
 
 export interface FetchResult {
   entries: NginxEntry[];
@@ -18,8 +19,8 @@ export async function fetchDirectory(path: string): Promise<FetchResult> {
   // Ensure path starts with /
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
-  // Build the fetch URL
-  const url = `/files${normalizedPath}`;
+  // Build the fetch URL with proper normalization
+  const url = buildApiUrl('/files', normalizedPath, true);
 
   const response = await fetch(url, {
     headers: {
