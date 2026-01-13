@@ -31,6 +31,9 @@
   let renameInputRef = $state<HTMLInputElement | null>(null);
   let renaming = $state(false);
 
+  // Menu positioning state
+  let menuPosition = $state<{ top: number; left: number; openUpward: boolean } | null>(null);
+
   function handleDirectoryClick(entry: NginxEntry, event: MouseEvent) {
     event.preventDefault();
     const newPath = getDirectoryUrl(currentPath, entry.name);
@@ -71,12 +74,33 @@
 
   function toggleMenu(entryName: string, event: MouseEvent) {
     event.stopPropagation();
-    openMenu = openMenu === entryName ? null : entryName;
-    deleteError = null;
+    if (openMenu === entryName) {
+      openMenu = null;
+      menuPosition = null;
+    } else {
+      openMenu = entryName;
+      deleteError = null;
+      // Calculate position from trigger button
+      const trigger = event.currentTarget as HTMLButtonElement;
+      if (trigger) {
+        const rect = trigger.getBoundingClientRect();
+        const menuHeight = 88; // Approximate height of menu (2 items * ~44px each)
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - rect.bottom;
+        const openUpward = spaceBelow < menuHeight + 8;
+        
+        menuPosition = {
+          top: openUpward ? rect.top : rect.bottom,
+          left: rect.right,
+          openUpward
+        };
+      }
+    }
   }
 
   function closeMenu() {
     openMenu = null;
+    menuPosition = null;
   }
 
   function handleMenuKeydown(entryName: string, event: KeyboardEvent) {
@@ -394,26 +418,6 @@
                     ⋮
                   {/if}
                 </button>
-                {#if openMenu === entry.name}
-                  <div class="menu-dropdown" role="menu">
-                    <button
-                      type="button"
-                      class="menu-item"
-                      onclick={() => startRename(entry)}
-                      role="menuitem"
-                    >
-                      ✏️ Rename
-                    </button>
-                    <button
-                      type="button"
-                      class="menu-item delete"
-                      onclick={() => requestDelete(entry)}
-                      role="menuitem"
-                    >
-                      🗑️ Delete
-                    </button>
-                  </div>
-                {/if}
               </div>
             </td>
           </tr>
@@ -422,6 +426,36 @@
     </tbody>
   </table>
 </div>
+
+<!-- Context Menu Portal - Rendered outside table to avoid overflow clipping -->
+{#if openMenu && menuPosition}
+  {@const currentEntry = entries.find(e => e.name === openMenu)}
+  {#if currentEntry}
+    <div 
+      class="menu-dropdown"
+      class:open-upward={menuPosition.openUpward}
+      role="menu"
+      style="top: {menuPosition.top}px; left: {menuPosition.left}px;"
+    >
+      <button
+        type="button"
+        class="menu-item"
+        onclick={() => startRename(currentEntry)}
+        role="menuitem"
+      >
+        ✏️ Rename
+      </button>
+      <button
+        type="button"
+        class="menu-item delete"
+        onclick={() => requestDelete(currentEntry)}
+        role="menuitem"
+      >
+        🗑️ Delete
+      </button>
+    </div>
+  {/if}
+{/if}
 
 <!-- Confirmation Dialog -->
 {#if confirmEntry}
@@ -764,16 +798,19 @@
   }
 
   .menu-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
+    position: fixed;
     min-width: 120px;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 100;
+    z-index: 1000;
     overflow: hidden;
+    transform: translateX(-100%);
+  }
+
+  .menu-dropdown.open-upward {
+    transform: translateX(-100%) translateY(-100%);
   }
 
   .menu-item {
