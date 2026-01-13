@@ -3,7 +3,7 @@
   import type { SortField, SortState } from '../lib/sortFilter';
   import { formatSize, formatDate } from '../lib/format';
   import { getFileUrl, getDirectoryUrl } from '../lib/api';
-  import { deleteFile, getDeletePath, type DeleteError } from '../lib/upload';
+  import { deleteFile, getDeletePath, renameFile, type DeleteError, type RenameError } from '../lib/upload';
 
   interface Props {
     entries: NginxEntry[];
@@ -23,6 +23,12 @@
 
   // Confirmation dialog state
   let confirmEntry = $state<NginxEntry | null>(null);
+
+  // Rename state
+  let renamingEntry = $state<string | null>(null);
+  let renameValue = $state('');
+  let renameError = $state<{ name: string; message: string } | null>(null);
+  let renameInputRef = $state<HTMLInputElement | null>(null);
 
   function handleDirectoryClick(entry: NginxEntry, event: MouseEvent) {
     event.preventDefault();
@@ -119,6 +125,106 @@
     }
   }
 
+  // Rename functions
+  function startRename(entry: NginxEntry) {
+    openMenu = null;
+    renameError = null;
+    renamingEntry = entry.name;
+    renameValue = entry.name;
+    // Focus and select filename (not extension) after DOM updates
+    setTimeout(() => {
+      if (renameInputRef) {
+        renameInputRef.focus();
+        // Select only the filename part (not extension) for files
+        if (entry.type === 'file') {
+          const lastDot = entry.name.lastIndexOf('.');
+          if (lastDot > 0) {
+            renameInputRef.setSelectionRange(0, lastDot);
+          } else {
+            renameInputRef.select();
+          }
+        } else {
+          renameInputRef.select();
+        }
+      }
+    }, 0);
+  }
+
+  function cancelRename() {
+    renamingEntry = null;
+    renameValue = '';
+    renameError = null;
+  }
+
+  function validateRename(name: string, originalName: string): string | null {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return 'Name cannot be empty';
+    }
+    if (trimmed.includes('/') || trimmed.includes('\\')) {
+      return 'Name cannot contain / or \\';
+    }
+    if (trimmed === originalName) {
+      return null; // No change, silently cancel
+    }
+    return ''; // Valid
+  }
+
+  async function confirmRename(originalName: string) {
+    const trimmedName = renameValue.trim();
+    const validationResult = validateRename(trimmedName, originalName);
+
+    if (validationResult === null) {
+      // Name didn't change, just cancel
+      cancelRename();
+      return;
+    }
+
+    if (validationResult) {
+      renameError = { name: originalName, message: validationResult };
+      return;
+    }
+
+    renamingEntry = null;
+
+    try {
+      const oldPath = getDeletePath(currentPath, originalName);
+      await renameFile(oldPath, trimmedName);
+      // Update the entry in the local state
+      const entryIndex = entries.findIndex((e) => e.name === originalName);
+      if (entryIndex !== -1) {
+        entries[entryIndex] = { ...entries[entryIndex], name: trimmedName };
+        entries = [...entries]; // Trigger reactivity
+      }
+      renameError = null;
+    } catch (err) {
+      renameError = {
+        name: originalName,
+        message: (err as RenameError).message,
+      };
+      console.error('Rename failed:', err);
+    }
+  }
+
+  function handleRenameKeydown(originalName: string, event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      confirmRename(originalName);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      cancelRename();
+    }
+  }
+
+  function handleRenameBlur(originalName: string) {
+    // Small delay to allow click events to process first
+    setTimeout(() => {
+      if (renamingEntry === originalName) {
+        cancelRename();
+      }
+    }, 150);
+  }
+
   // Close menu when clicking outside
   function handleDocumentClick() {
     if (openMenu) {
@@ -190,7 +296,23 @@
           >
             <td class="col-name">
               <span class="icon" aria-hidden="true">{getIcon(entry.type)}</span>
-              {#if entry.type === 'directory'}
+              {#if renamingEntry === entry.name}
+                <div class="rename-container">
+                  <input
+                    type="text"
+                    class="rename-input"
+                    class:has-error={renameError?.name === entry.name}
+                    bind:value={renameValue}
+                    bind:this={renameInputRef}
+                    onkeydown={(e) => handleRenameKeydown(entry.name, e)}
+                    onblur={() => handleRenameBlur(entry.name)}
+                    aria-label="New name for {entry.name}"
+                  />
+                  {#if renameError?.name === entry.name}
+                    <span class="rename-error" role="alert">{renameError.message}</span>
+                  {/if}
+                </div>
+              {:else if entry.type === 'directory'}
                 <a 
                   href="#{getDirectoryUrl(currentPath, entry.name)}"
                   onclick={(e) => handleDirectoryClick(entry, e)}
@@ -210,6 +332,9 @@
               {/if}
               {#if deleteError?.name === entry.name}
                 <span class="delete-error" role="alert">{deleteError.message}</span>
+              {/if}
+              {#if renameError?.name === entry.name && renamingEntry !== entry.name}
+                <span class="rename-error" role="alert">{renameError.message}</span>
               {/if}
             </td>
             <td class="col-size">
@@ -239,6 +364,14 @@
                 </button>
                 {#if openMenu === entry.name}
                   <div class="menu-dropdown" role="menu">
+                    <button
+                      type="button"
+                      class="menu-item"
+                      onclick={() => startRename(entry)}
+                      role="menuitem"
+                    >
+                      ✏️ Rename
+                    </button>
                     <button
                       type="button"
                       class="menu-item delete"
@@ -416,6 +549,41 @@
     color: var(--color-error, #dc3545);
     margin-top: 0.25rem;
     padding-left: 1.6rem;
+  }
+
+  .rename-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .rename-input {
+    flex: 1;
+    padding: 0.25rem 0.5rem;
+    font-size: inherit;
+    font-family: inherit;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    outline: none;
+    min-width: 100px;
+  }
+
+  .rename-input:focus {
+    border-color: var(--color-focus);
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+  }
+
+  .rename-input.has-error {
+    border-color: var(--color-error, #dc3545);
+  }
+
+  .rename-error {
+    font-size: 0.75rem;
+    color: var(--color-error, #dc3545);
+    margin-top: 0.2rem;
   }
 
   .col-size {

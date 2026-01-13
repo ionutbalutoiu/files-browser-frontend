@@ -208,6 +208,54 @@ export function getDeletePath(directoryPath: string, fileName: string): string {
   return fileName;
 }
 
+export interface RenameError {
+  message: string;
+  status?: number;
+}
+
+/**
+ * Rename a file or directory.
+ * @param oldPath - Full path to file or directory (e.g., "/photos/2026/image.jpg")
+ * @param newName - New name for the file or directory (just the name, not full path)
+ */
+export async function renameFile(oldPath: string, newName: string): Promise<void> {
+  // Normalize path: remove leading slash
+  const normalizedPath = oldPath.replace(/^\//, '');
+
+  const response = await fetch(`/rename/${normalizedPath}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ new_name: newName }),
+  });
+
+  if (!response.ok) {
+    let errorMessage: string;
+
+    try {
+      const result = await response.json();
+      errorMessage = result.error || `Rename failed: ${response.status}`;
+    } catch {
+      errorMessage = `Rename failed: ${response.status}`;
+    }
+
+    // Map status codes to user-friendly messages
+    switch (response.status) {
+      case 404:
+        throw { message: 'File not found', status: 404 } as RenameError;
+      case 409:
+        throw { message: 'A file with that name already exists', status: 409 } as RenameError;
+      case 400:
+        throw { message: 'Invalid name', status: 400 } as RenameError;
+      case 403:
+        throw { message: 'Cannot rename this path', status: 403 } as RenameError;
+      default:
+        throw { message: errorMessage, status: response.status } as RenameError;
+    }
+  }
+}
+
 export interface CreateDirectoryResult {
   created: string;
 }
