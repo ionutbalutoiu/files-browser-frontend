@@ -78,3 +78,50 @@ export function getDirectoryUrl(directoryPath: string, dirName: string): string 
   const encodedName = encodeURIComponent(dirName);
   return `${normalizedDir}${encodedName}/`;
 }
+
+/**
+ * Error response from share-public-files endpoint
+ */
+export interface SharePublicFilesError {
+  message: string;
+  notEnabled?: boolean;
+}
+
+/**
+ * List all publicly shared files.
+ * Returns an array of relative file paths.
+ */
+export async function listSharePublicFiles(): Promise<string[]> {
+  const url = buildApiUrl('/share-public-files/', '', false);
+
+  const response = await fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 501) {
+      const data = await response.json().catch(() => ({}));
+      const error: SharePublicFilesError = {
+        message: data.error || 'Public sharing is not enabled on this server',
+        notEnabled: true,
+      };
+      throw error;
+    }
+    const error: SharePublicFilesError = {
+      message: `Server error: ${response.status}`,
+    };
+    throw error;
+  }
+
+  try {
+    const data = await response.json();
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid response format');
+    }
+    return data as string[];
+  } catch {
+    throw { message: 'Failed to parse response' } as SharePublicFilesError;
+  }
+}

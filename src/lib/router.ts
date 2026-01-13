@@ -1,11 +1,44 @@
 /**
  * Simple hash-based router for directory navigation.
  * Maps hash paths to /files/ directory structure.
+ * Also supports special routes like /shared for public shares.
  */
+
+export type RouteType = 'files' | 'shared';
+
+export interface RouteInfo {
+  type: RouteType;
+  path: string;
+}
 
 export type RouteChangeCallback = (path: string) => void;
 
 let currentCallback: RouteChangeCallback | null = null;
+
+/**
+ * Check if the current route is the shared files view.
+ */
+export function isSharedRoute(): boolean {
+  const hash = window.location.hash.slice(1);
+  return hash === '/shared' || hash === 'shared';
+}
+
+/**
+ * Get the current route info (type and path).
+ */
+export function getRouteInfo(): RouteInfo {
+  if (isSharedRoute()) {
+    return { type: 'shared', path: '/shared' };
+  }
+  return { type: 'files', path: getCurrentPath() };
+}
+
+/**
+ * Navigate to the shared files view.
+ */
+export function navigateToShared(): void {
+  window.location.hash = '/shared';
+}
 
 /**
  * Get the current path from the hash.

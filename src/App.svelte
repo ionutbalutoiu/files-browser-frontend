@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { initRouter, onRouteChange, navigateTo, getCurrentPath } from './lib/router';
+  import { initRouter, onRouteChange, navigateTo, getCurrentPath, isSharedRoute, navigateToShared } from './lib/router';
   import { fetchDirectory, type FetchError } from './lib/api';
   import { processEntries, toggleSort, DEFAULT_SORT, DEFAULT_FILTER, type SortState, type SortField, type FilterState } from './lib/sortFilter';
   import type { NginxEntry } from './lib/nginxAutoindex';
@@ -9,12 +9,16 @@
   import Toolbar from './components/Toolbar.svelte';
   import FileTable from './components/FileTable.svelte';
   import UploadPanel from './components/UploadPanel.svelte';
+  import SharedFilesView from './components/SharedFilesView.svelte';
 
   // State
   let currentPath = $state('/');
   let entries = $state<NginxEntry[]>([]);
   let loading = $state(true);
   let error = $state<FetchError | null>(null);
+  
+  // View state: 'files' or 'shared'
+  let currentView = $state<'files' | 'shared'>('files');
   
   // Sort and filter state (preserved across navigation)
   let sort = $state<SortState>({ ...DEFAULT_SORT });
@@ -71,11 +75,23 @@
   // Initialize on mount
   onMount(() => {
     const initialPath = initRouter();
-    loadDirectory(initialPath);
+    
+    // Check initial route type
+    if (isSharedRoute()) {
+      currentView = 'shared';
+      loading = false;
+    } else {
+      currentView = 'files';
+      loadDirectory(initialPath);
+    }
 
     // Subscribe to route changes
     const cleanup = onRouteChange((newPath) => {
-      if (newPath !== currentPath) {
+      if (isSharedRoute()) {
+        currentView = 'shared';
+        loading = false;
+      } else if (newPath !== currentPath || currentView !== 'files') {
+        currentView = 'files';
         loadDirectory(newPath);
       }
     });
@@ -86,12 +102,39 @@
 
 <div class="app">
   <header class="header">
-    <h1 class="title">📂 Files Browser</h1>
-    <Breadcrumbs path={currentPath} onNavigate={handleNavigate} />
+    <div class="header-top">
+      <h1 class="title">📂 Files Browser</h1>
+      <nav class="nav-links">
+        <button 
+          type="button" 
+          class="nav-link"
+          class:active={currentView === 'files'}
+          onclick={() => navigateTo('/')}
+        >
+          <span class="nav-icon" aria-hidden="true">📁</span>
+          <span class="nav-text">Browse</span>
+        </button>
+        <button 
+          type="button" 
+          class="nav-link"
+          class:active={currentView === 'shared'}
+          onclick={navigateToShared}
+        >
+          <span class="nav-icon" aria-hidden="true">🔗</span>
+          <span class="nav-text">Public Shares</span>
+        </button>
+      </nav>
+    </div>
+    {#if currentView === 'files'}
+      <Breadcrumbs path={currentPath} onNavigate={handleNavigate} />
+    {/if}
   </header>
 
   <main class="main">
-    <Toolbar 
+    {#if currentView === 'shared'}
+      <SharedFilesView />
+    {:else}
+      <Toolbar 
       search={filter.search}
       {sort}
       {showUpload}
@@ -150,6 +193,7 @@
         </p>
       </footer>
     {/if}
+    {/if}
   </main>
 </div>
 
@@ -166,11 +210,59 @@
     background: var(--color-header-bg);
   }
 
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
   .title {
-    margin: 0 0 0.5rem 0;
+    margin: 0;
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--color-text);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .nav-link:hover {
+    background: var(--color-hover);
+    color: var(--color-text);
+  }
+
+  .nav-link.active {
+    background: var(--color-active);
+    border-color: var(--color-active-border);
+    color: var(--color-link);
+  }
+
+  .nav-link:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .nav-icon {
+    font-size: 1rem;
   }
 
   .main {
@@ -275,6 +367,10 @@
       padding: 0.75rem 1rem;
     }
 
+    .header-top {
+      flex-wrap: wrap;
+    }
+
     .main {
       padding: 0 1rem 1rem;
     }
@@ -286,9 +382,28 @@
       padding: 0.6rem 0.75rem;
     }
 
+    .header-top {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
     .title {
       font-size: 1.2rem;
-      margin-bottom: 0.25rem;
+    }
+
+    .nav-links {
+      width: 100%;
+    }
+
+    .nav-link {
+      flex: 1;
+      justify-content: center;
+      padding: 0.5rem;
+    }
+
+    .nav-text {
+      font-size: 0.8rem;
     }
 
     .main {
