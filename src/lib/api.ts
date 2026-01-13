@@ -67,7 +67,7 @@ export async function fetchDirectory(path: string): Promise<FetchResult> {
 export function getFileUrl(directoryPath: string, fileName: string): string {
   const normalizedDir = directoryPath.startsWith('/') ? directoryPath : `/${directoryPath}`;
   const encodedName = encodeURIComponent(fileName);
-  return `/files${normalizedDir}${encodedName}`;
+  return buildApiUrl('/files', `${normalizedDir}${encodedName}`, false);
 }
 
 /**

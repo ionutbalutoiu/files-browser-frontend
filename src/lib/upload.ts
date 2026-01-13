@@ -224,9 +224,8 @@ export async function renameFile(oldPath: string, newName: string): Promise<void
   // Encode the new name for the query parameter
   const encodedNewName = encodeURIComponent(newName.trim());
 
-  const response = await fetch(`/rename/${normalizedPath}?newName=${encodedNewName}`, {
-    method: 'POST',
-  });
+  const renameUrl = buildApiUrl('/rename', normalizedPath, true) + `?newName=${encodedNewName}`;
+  const response = await fetch(renameUrl, { method: 'POST' });
 
   if (!response.ok) {
     let errorMessage: string;

@@ -86,48 +86,48 @@ const tests: TestCase[] = [
 
   // buildApiUrl tests
   {
-    name: 'buildApiUrl: "/upload" + "/" with trailing slash => "/upload/"',
+    name: 'buildApiUrl: "/upload" + "/" with trailing slash => "/api/upload/"',
     fn: () => {
-      assertEqual(buildApiUrl('/upload', '/', true), '/upload/');
+      assertEqual(buildApiUrl('/upload', '/', true), '/api/upload/');
     }
   },
   {
-    name: 'buildApiUrl: "/upload" + "" with trailing slash => "/upload/"',
+    name: 'buildApiUrl: "/upload" + "" with trailing slash => "/api/upload/"',
     fn: () => {
-      assertEqual(buildApiUrl('/upload', '', true), '/upload/');
+      assertEqual(buildApiUrl('/upload', '', true), '/api/upload/');
     }
   },
   {
-    name: 'buildApiUrl: "/upload" + "photos/2026/" => "/upload/photos/2026/"',
+    name: 'buildApiUrl: "/upload" + "photos/2026/" => "/api/upload/photos/2026/"',
     fn: () => {
-      assertEqual(buildApiUrl('/upload', 'photos/2026/', true), '/upload/photos/2026/');
+      assertEqual(buildApiUrl('/upload', 'photos/2026/', true), '/api/upload/photos/2026/');
     }
   },
   {
-    name: 'buildApiUrl: "/upload" + "/photos/2026/" => "/upload/photos/2026/"',
+    name: 'buildApiUrl: "/upload" + "/photos/2026/" => "/api/upload/photos/2026/"',
     fn: () => {
-      assertEqual(buildApiUrl('/upload', '/photos/2026/', true), '/upload/photos/2026/');
+      assertEqual(buildApiUrl('/upload', '/photos/2026/', true), '/api/upload/photos/2026/');
     }
   },
   {
-    name: 'buildApiUrl: "/delete" + "/path/file.txt" no trailing slash => "/delete/path/file.txt"',
+    name: 'buildApiUrl: "/delete" + "/path/file.txt" no trailing slash => "/api/delete/path/file.txt"',
     fn: () => {
-      assertEqual(buildApiUrl('/delete', '/path/file.txt', false), '/delete/path/file.txt');
+      assertEqual(buildApiUrl('/delete', '/path/file.txt', false), '/api/delete/path/file.txt');
     }
   },
   {
     name: 'buildApiUrl: prevents double slashes at root',
     fn: () => {
       // This is the main bug case: uploading at root
-      assertEqual(buildApiUrl('/upload', '/', true), '/upload/');
-      assertEqual(buildApiUrl('/upload/', '/', true), '/upload/');
-      assertEqual(buildApiUrl('/upload/', '//', true), '/upload/');
+      assertEqual(buildApiUrl('/upload', '/', true), '/api/upload/');
+      assertEqual(buildApiUrl('/upload/', '/', true), '/api/upload/');
+      assertEqual(buildApiUrl('/upload/', '//', true), '/api/upload/');
     }
   },
   {
     name: 'buildApiUrl: handles paths with multiple leading slashes',
     fn: () => {
-      assertEqual(buildApiUrl('/upload', '///path/', true), '/upload/path/');
+      assertEqual(buildApiUrl('/upload', '///path/', true), '/api/upload/path/');
     }
   },
 ];

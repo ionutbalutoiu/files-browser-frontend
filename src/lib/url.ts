@@ -96,7 +96,8 @@ export function buildApiUrl(
   trailingSlash: boolean = false
 ): string {
   // Normalize the endpoint (remove trailing slash for consistent joining)
-  const normalizedEndpoint = endpoint.replace(/\/+$/, '');
+  // Add /api prefix to all API endpoints
+  const normalizedEndpoint = '/api' + endpoint.replace(/\/+$/, '');
   
   // Normalize the path (remove leading slashes to prevent doubles)
   let normalizedPath = path.replace(/^\/+/, '');
