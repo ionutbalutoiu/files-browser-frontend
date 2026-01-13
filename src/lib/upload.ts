@@ -327,3 +327,62 @@ export async function createDirectory(
 
   return result as CreateDirectoryResult;
 }
+export interface SharePublicResult {
+  shared: string;
+}
+
+export interface SharePublicError {
+  message: string;
+  status?: number;
+}
+
+/**
+ * Share a file publicly.
+ * @param path - Full path to the file (e.g., "photos/2026/image.jpg")
+ * @returns The relative path of the shared file
+ */
+export async function sharePublic(path: string): Promise<SharePublicResult> {
+  // Normalize path: remove leading/trailing slashes
+  const normalizedPath = path.replace(/^\/+|\/+$/g, '');
+
+  if (!normalizedPath) {
+    throw { message: 'Invalid path' } as SharePublicError;
+  }
+
+  const shareUrl = buildApiUrl('/share-public', normalizedPath, false);
+
+  const response = await fetch(shareUrl, {
+    method: 'POST',
+  });
+
+  let result: SharePublicResult | { error: string };
+  try {
+    result = await response.json();
+  } catch {
+    if (response.ok) {
+      return { shared: normalizedPath };
+    }
+    throw { message: `Share failed: ${response.status}` } as SharePublicError;
+  }
+
+  if (!response.ok) {
+    const errorMessage = 'error' in result ? result.error : `Share failed: ${response.status}`;
+
+    // Map status codes to user-friendly messages
+    switch (response.status) {
+      case 400:
+        throw { message: errorMessage, status: 400 } as SharePublicError;
+      case 404:
+        throw { message: 'File not found', status: 404 } as SharePublicError;
+      case 409:
+        // Conflict means already shared - return success for better UX
+        return { shared: normalizedPath };
+      case 501:
+        throw { message: 'Public sharing is not enabled on this server', status: 501 } as SharePublicError;
+      default:
+        throw { message: errorMessage, status: response.status } as SharePublicError;
+    }
+  }
+
+  return result as SharePublicResult;
+}

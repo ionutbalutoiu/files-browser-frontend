@@ -3,7 +3,7 @@
   import type { SortField, SortState } from '../lib/sortFilter';
   import { formatSize, formatDate } from '../lib/format';
   import { getFileUrl, getDirectoryUrl } from '../lib/api';
-  import { deleteFile, getDeletePath, renameFile, type DeleteError, type RenameError } from '../lib/upload';
+  import { deleteFile, getDeletePath, renameFile, sharePublic, type DeleteError, type RenameError, type SharePublicError } from '../lib/upload';
 
   interface Props {
     entries: NginxEntry[];
@@ -33,6 +33,32 @@
 
   // Menu positioning state
   let menuPosition = $state<{ top: number; left: number; openUpward: boolean } | null>(null);
+
+  // Share state
+  let sharing = $state<string | null>(null);
+  
+  // Toast notification state
+  let toast = $state<{ message: string; type: 'success' | 'error' } | null>(null);
+  let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    if (toastTimeout) {
+      clearTimeout(toastTimeout);
+    }
+    toast = { message, type };
+    toastTimeout = setTimeout(() => {
+      toast = null;
+      toastTimeout = null;
+    }, 4000);
+  }
+
+  function dismissToast() {
+    if (toastTimeout) {
+      clearTimeout(toastTimeout);
+      toastTimeout = null;
+    }
+    toast = null;
+  }
 
   function handleDirectoryClick(entry: NginxEntry, event: MouseEvent) {
     event.preventDefault();
@@ -231,6 +257,28 @@
       console.error('Rename failed:', err);
     } finally {
       renaming = false;
+    }
+  }
+
+  async function handleShare(entry: NginxEntry) {
+    openMenu = null;
+    menuPosition = null;
+    
+    if (entry.type === 'directory') {
+      return; // Directories cannot be shared
+    }
+    
+    sharing = entry.name;
+    
+    try {
+      const path = getDeletePath(currentPath, entry.name);
+      const result = await sharePublic(path);
+      showToast(`File shared publicly: ${result.shared}`, 'success');
+    } catch (err) {
+      const error = err as SharePublicError;
+      showToast(error.message, 'error');
+    } finally {
+      sharing = null;
     }
   }
 
@@ -437,6 +485,21 @@
       role="menu"
       style="top: {menuPosition.top}px; left: {menuPosition.left}px;"
     >
+      {#if currentEntry.type === 'file'}
+        <button
+          type="button"
+          class="menu-item"
+          onclick={() => handleShare(currentEntry)}
+          disabled={sharing === currentEntry.name}
+          role="menuitem"
+        >
+          {#if sharing === currentEntry.name}
+            <span class="spinner-small"></span> Sharing...
+          {:else}
+            🔗 Share Publicly
+          {/if}
+        </button>
+      {/if}
       <button
         type="button"
         class="menu-item"
@@ -504,6 +567,30 @@
         </button>
       </div>
     </div>
+  </div>
+{/if}
+
+<!-- Toast Notification -->
+{#if toast}
+  <div 
+    class="toast"
+    class:toast-success={toast.type === 'success'}
+    class:toast-error={toast.type === 'error'}
+    role="alert"
+    aria-live="polite"
+  >
+    <span class="toast-icon" aria-hidden="true">
+      {toast.type === 'success' ? '✓' : '⚠️'}
+    </span>
+    <span class="toast-message">{toast.message}</span>
+    <button
+      type="button"
+      class="toast-dismiss"
+      onclick={dismissToast}
+      aria-label="Dismiss notification"
+    >
+      ✕
+    </button>
   </div>
 {/if}
 
@@ -1031,4 +1118,108 @@
       padding: 0.75rem;
     }
   }
-</style>
+
+  /* ===================================
+     Toast Notifications
+     =================================== */
+
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 2000;
+    max-width: calc(100vw - 2rem);
+    animation: toastSlideIn 0.25s ease-out;
+  }
+
+  @keyframes toastSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(1rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+
+  .toast-success {
+    background: var(--color-success-bg, #d4edda);
+    border: 1px solid var(--color-success, #28a745);
+    color: var(--color-success-text, #155724);
+  }
+
+  .toast-error {
+    background: var(--color-error-bg, rgba(220, 53, 69, 0.1));
+    border: 1px solid var(--color-error, #dc3545);
+    color: var(--color-error, #dc3545);
+  }
+
+  .toast-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .toast-message {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .toast-dismiss {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: auto;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: opacity 0.15s, background-color 0.15s;
+  }
+
+  .toast-dismiss:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .toast-dismiss:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  /* Mobile toast adjustments */
+  @media (max-width: 480px) {
+    .toast {
+      bottom: 1rem;
+      left: 1rem;
+      right: 1rem;
+      transform: none;
+      max-width: none;
+    }
+
+    @keyframes toastSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(1rem);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  }</style>
