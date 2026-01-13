@@ -1,12 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { listSharePublicFiles, type SharePublicFilesError } from '../lib/api';
+  import { listSharePublicFiles, deletePublicShare, type SharePublicFilesError } from '../lib/api';
   import { navigateTo } from '../lib/router';
   import { getPublicFileUrl } from '../lib/config';
 
   // State
   let sharedFiles = $state<string[]>([]);
   let copiedPath = $state<string | null>(null);
+  let confirmPath = $state<string | null>(null);
+  let deletingPath = $state<string | null>(null);
+  let deleteError = $state<string | null>(null);
   let loading = $state(true);
   let error = $state<SharePublicFilesError | null>(null);
 
@@ -60,6 +63,50 @@
       }, 2000);
     } catch (err) {
       console.error('Failed to copy link:', err);
+    }
+  }
+
+  // Request unlink confirmation
+  function requestUnlink(filePath: string, event: MouseEvent) {
+    event.stopPropagation();
+    confirmPath = filePath;
+  }
+
+  // Cancel unlink confirmation
+  function cancelUnlink() {
+    confirmPath = null;
+  }
+
+  // Handle dialog keyboard events
+  function handleDialogKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      cancelUnlink();
+    }
+  }
+
+  // Confirm and execute unlink
+  async function confirmUnlink() {
+    if (!confirmPath) return;
+    
+    const filePath = confirmPath;
+    confirmPath = null;
+    deletingPath = filePath;
+    deleteError = null;
+
+    try {
+      await deletePublicShare(filePath);
+      // Remove from local list for snappy UX
+      sharedFiles = sharedFiles.filter(f => f !== filePath);
+    } catch (err) {
+      deleteError = (err as SharePublicFilesError).message;
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        if (deleteError) {
+          deleteError = null;
+        }
+      }, 5000);
+    } finally {
+      deletingPath = null;
     }
   }
 
@@ -120,6 +167,20 @@
       </p>
     </div>
   {:else}
+    {#if deleteError}
+      <div class="delete-error" role="alert">
+        <span class="delete-error-icon" aria-hidden="true">⚠️</span>
+        <span class="delete-error-message">{deleteError}</span>
+        <button 
+          type="button" 
+          class="delete-error-dismiss"
+          onclick={() => deleteError = null}
+          aria-label="Dismiss error"
+        >
+          ✕
+        </button>
+      </div>
+    {/if}
     <div class="file-list">
       <div class="list-header">
         <span class="header-count">{sharedFiles.length} shared file{sharedFiles.length !== 1 ? 's' : ''}</span>
@@ -141,21 +202,39 @@
                 </span>
                 <span class="navigate-icon" aria-hidden="true">→</span>
               </button>
-              <button
-                type="button"
-                class="copy-link-btn"
-                class:copied={copiedPath === filePath}
-                onclick={(e) => copyLink(filePath, e)}
-                title="Copy public link"
-              >
-                {#if copiedPath === filePath}
-                  <span class="copy-icon" aria-hidden="true">✓</span>
-                  <span class="copy-text">Copied!</span>
-                {:else}
-                  <span class="copy-icon" aria-hidden="true">🔗</span>
-                  <span class="copy-text">Copy Link</span>
-                {/if}
-              </button>
+              <div class="file-actions">
+                <button
+                  type="button"
+                  class="copy-link-btn"
+                  class:copied={copiedPath === filePath}
+                  onclick={(e) => copyLink(filePath, e)}
+                  title="Copy public link"
+                >
+                  {#if copiedPath === filePath}
+                    <span class="btn-icon" aria-hidden="true">✓</span>
+                    <span class="btn-text">Copied!</span>
+                  {:else}
+                    <span class="btn-icon" aria-hidden="true">🔗</span>
+                    <span class="btn-text">Copy</span>
+                  {/if}
+                </button>
+                <button
+                  type="button"
+                  class="unlink-btn"
+                  class:deleting={deletingPath === filePath}
+                  onclick={(e) => requestUnlink(filePath, e)}
+                  disabled={deletingPath === filePath}
+                  title="Remove public share"
+                >
+                  {#if deletingPath === filePath}
+                    <span class="btn-icon spinner-small" aria-hidden="true"></span>
+                    <span class="btn-text">Removing...</span>
+                  {:else}
+                    <span class="btn-icon" aria-hidden="true">🗑️</span>
+                    <span class="btn-text">Remove</span>
+                  {/if}
+                </button>
+              </div>
             </div>
           </li>
         {/each}
@@ -163,6 +242,52 @@
     </div>
   {/if}
 </div>
+
+<!-- Confirmation Dialog -->
+{#if confirmPath}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div 
+    class="dialog-overlay" 
+    onclick={cancelUnlink}
+    onkeydown={handleDialogKeydown}
+    role="presentation"
+  >
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div 
+      class="dialog" 
+      role="alertdialog" 
+      aria-modal="true"
+      aria-labelledby="dialog-title"
+      aria-describedby="dialog-description"
+      tabindex="0"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+    >
+      <h2 id="dialog-title" class="dialog-title">Remove Public Share</h2>
+      <p id="dialog-description" class="dialog-message">
+        Remove public share for <strong>"{confirmPath}"</strong>?
+        <br><br>
+        The file will no longer be accessible via its public link.
+      </p>
+      <div class="dialog-actions">
+        <button 
+          type="button" 
+          class="dialog-btn cancel" 
+          onclick={cancelUnlink}
+        >
+          Cancel
+        </button>
+        <button 
+          type="button" 
+          class="dialog-btn confirm" 
+          onclick={confirmUnlink}
+        >
+          Remove
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .shared-files-view {
@@ -300,6 +425,51 @@
     margin: 0 0 0.5rem 0;
   }
 
+  /* Delete error banner */
+  .delete-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    background: var(--color-error-bg);
+    border: 1px solid var(--color-error);
+    border-radius: 8px;
+  }
+
+  .delete-error-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .delete-error-message {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--color-error);
+  }
+
+  .delete-error-dismiss {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-error);
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+
+  .delete-error-dismiss:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .delete-error-dismiss:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
   /* File list */
   .file-list {
     background: var(--color-bg);
@@ -366,12 +536,20 @@
     outline-offset: -2px;
   }
 
-  .copy-link-btn {
+  .file-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .copy-link-btn,
+  .unlink-btn {
     display: flex;
     align-items: center;
     gap: 0.35rem;
     padding: 0.4rem 0.65rem;
-    margin-right: 0.75rem;
     font-size: 0.8rem;
     font-family: inherit;
     border: 1px solid var(--color-border);
@@ -384,13 +562,15 @@
     flex-shrink: 0;
   }
 
-  .copy-link-btn:hover {
+  .copy-link-btn:hover,
+  .unlink-btn:hover {
     background: var(--color-hover);
     border-color: var(--color-border-hover);
     color: var(--color-text);
   }
 
-  .copy-link-btn:focus-visible {
+  .copy-link-btn:focus-visible,
+  .unlink-btn:focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
@@ -401,12 +581,35 @@
     color: var(--color-link);
   }
 
-  .copy-icon {
+  .unlink-btn:hover {
+    border-color: var(--color-error);
+    color: var(--color-error);
+  }
+
+  .unlink-btn.deleting {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .unlink-btn:disabled {
+    pointer-events: none;
+  }
+
+  .btn-icon {
     font-size: 0.9rem;
   }
 
-  .copy-text {
+  .btn-text {
     font-weight: 500;
+  }
+
+  .spinner-small {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--color-muted);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
 
   .file-icon {
@@ -482,8 +685,14 @@
       padding: 0.875rem 0.75rem;
     }
 
-    .copy-link-btn {
+    .file-actions {
       margin: 0 0.75rem 0.75rem 0.75rem;
+      gap: 0.5rem;
+    }
+
+    .copy-link-btn,
+    .unlink-btn {
+      flex: 1;
       justify-content: center;
       padding: 0.5rem 0.75rem;
     }
@@ -495,5 +704,111 @@
     .file-path {
       font-size: 0.75rem;
     }
+  }
+
+  /* ===================================
+     Confirmation Dialog
+     =================================== */
+
+  .dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: fadeIn 0.15s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .dialog {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 100%;
+    padding: 1.5rem;
+    animation: slideIn 0.15s ease-out;
+  }
+
+  @keyframes slideIn {
+    from { 
+      opacity: 0;
+      transform: scale(0.95) translateY(-10px);
+    }
+    to { 
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .dialog-title {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .dialog-message {
+    margin: 0 0 1.5rem 0;
+    font-size: 0.95rem;
+    color: var(--color-muted);
+    line-height: 1.5;
+  }
+
+  .dialog-message strong {
+    color: var(--color-text);
+    font-weight: 600;
+    word-break: break-word;
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  .dialog-btn {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+
+  .dialog-btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .dialog-btn.cancel {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+  }
+
+  .dialog-btn.cancel:hover {
+    background: var(--color-hover);
+    border-color: var(--color-border-hover);
+  }
+
+  .dialog-btn.confirm {
+    background: var(--color-error);
+    border: 1px solid var(--color-error);
+    color: white;
+  }
+
+  .dialog-btn.confirm:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
   }
 </style>

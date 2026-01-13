@@ -92,7 +92,7 @@ export interface SharePublicFilesError {
  * Returns an array of relative file paths.
  */
 export async function listSharePublicFiles(): Promise<string[]> {
-  const url = buildApiUrl('/share-public-files/', '', false);
+  const url = buildApiUrl('/share-public-files/', '', true);
 
   const response = await fetch(url, {
     headers: {
@@ -124,4 +124,27 @@ export async function listSharePublicFiles(): Promise<string[]> {
   } catch {
     throw { message: 'Failed to parse response' } as SharePublicFilesError;
   }
+}
+
+/**
+ * Delete a public share.
+ * @param path - The relative path of the file to unlink
+ */
+export async function deletePublicShare(path: string): Promise<{ deleted: string }> {
+  const url = buildApiUrl('/share-public-delete', '', false);
+
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ path }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw { message: data.error || `Failed to delete share: ${response.status}` } as SharePublicFilesError;
+  }
+
+  return response.json();
 }
