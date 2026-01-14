@@ -3,6 +3,8 @@
   import { listSharePublicFiles, deletePublicShare, type SharePublicFilesError } from '../lib/api';
   import { navigateTo } from '../lib/router';
   import { getPublicFileUrl } from '../lib/config';
+  import { COPY_FEEDBACK_TIMEOUT, DELETE_ERROR_TIMEOUT } from '../lib/constants';
+  import { LoadingState, ErrorState, EmptyState } from './shared';
 
   // State
   let sharedFiles = $state<string[]>([]);
@@ -55,12 +57,12 @@
     try {
       await navigator.clipboard.writeText(url);
       copiedPath = filePath;
-      // Reset after 2 seconds
+      // Reset after timeout
       setTimeout(() => {
         if (copiedPath === filePath) {
           copiedPath = null;
         }
-      }, 2000);
+      }, COPY_FEEDBACK_TIMEOUT);
     } catch (err) {
       console.error('Failed to copy link:', err);
     }
@@ -99,12 +101,12 @@
       sharedFiles = sharedFiles.filter(f => f !== filePath);
     } catch (err) {
       deleteError = (err as SharePublicFilesError).message;
-      // Clear error after 5 seconds
+      // Clear error after timeout
       setTimeout(() => {
         if (deleteError) {
           deleteError = null;
         }
-      }, 5000);
+      }, DELETE_ERROR_TIMEOUT);
     } finally {
       deletingPath = null;
     }
@@ -134,38 +136,28 @@
   </header>
 
   {#if loading}
-    <div class="status loading">
-      <div class="spinner" aria-hidden="true"></div>
-      <p>Loading shared files...</p>
-    </div>
+    <LoadingState message="Loading shared files..." />
   {:else if error}
-    <div class="status error" role="alert">
-      <span class="error-icon" aria-hidden="true">
-        {#if error.notEnabled}🚫{:else}⚠️{/if}
-      </span>
-      <p class="error-message">{error.message}</p>
-      {#if error.notEnabled}
-        <p class="error-hint">
-          The public sharing feature needs to be enabled in the server configuration.
-        </p>
-      {:else}
-        <button 
-          type="button" 
-          class="retry-button"
-          onclick={loadSharedFiles}
-        >
-          Retry
-        </button>
-      {/if}
-    </div>
+    {#if error.notEnabled}
+      <ErrorState
+        icon="🚫"
+        message={error.message}
+      >
+        The public sharing feature needs to be enabled in the server configuration.
+      </ErrorState>
+    {:else}
+      <ErrorState
+        icon="⚠️"
+        message={error.message}
+        onRetry={loadSharedFiles}
+      />
+    {/if}
   {:else if sharedFiles.length === 0}
-    <div class="status empty">
-      <span class="empty-icon" aria-hidden="true">📭</span>
-      <p class="empty-message">No files have been shared publicly</p>
-      <p class="empty-hint">
-        Use the share button on any file to make it publicly accessible.
-      </p>
-    </div>
+    <EmptyState
+      icon="📭"
+      message="No files have been shared publicly"
+      hint="Use the share button on any file to make it publicly accessible."
+    />
   {:else}
     {#if deleteError}
       <div class="delete-error" role="alert">
@@ -337,92 +329,6 @@
   .refresh-button:focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
-  }
-
-  /* Status states */
-  .status {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem 1rem;
-    text-align: center;
-  }
-
-  .loading {
-    color: var(--color-muted);
-  }
-
-  .spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-link);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin-bottom: 1rem;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  .error {
-    background: var(--color-error-bg);
-    border-radius: 8px;
-  }
-
-  .error-icon, .empty-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .error-message {
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: var(--color-error);
-    margin: 0 0 0.5rem 0;
-  }
-
-  .error-hint, .empty-hint {
-    color: var(--color-muted);
-    margin: 0;
-    font-size: 0.9rem;
-    max-width: 400px;
-  }
-
-  .retry-button {
-    margin-top: 1rem;
-    padding: 0.5rem 1.25rem;
-    font-size: 0.9rem;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-bg);
-    color: var(--color-text);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .retry-button:hover {
-    background: var(--color-hover);
-  }
-
-  .retry-button:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-
-  /* Empty state */
-  .empty {
-    background: var(--color-header-bg);
-    border-radius: 8px;
-  }
-
-  .empty-message {
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: var(--color-text);
-    margin: 0 0 0.5rem 0;
   }
 
   /* Delete error banner */
@@ -669,10 +575,6 @@
     .refresh-button {
       width: 100%;
       justify-content: center;
-    }
-
-    .status {
-      padding: 2rem 0.75rem;
     }
 
     .file-row {

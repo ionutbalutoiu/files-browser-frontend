@@ -4,6 +4,7 @@
  */
 
 import { buildApiUrl } from '../url';
+import { API_ENDPOINTS } from '../constants';
 import type { RenameError } from '../types';
 
 /**
@@ -18,7 +19,7 @@ export async function renameFile(oldPath: string, newName: string): Promise<void
   // Encode the new name for the query parameter
   const encodedNewName = encodeURIComponent(newName.trim());
 
-  const renameUrl = buildApiUrl('/rename', normalizedPath, true) + `?newName=${encodedNewName}`;
+  const renameUrl = buildApiUrl(API_ENDPOINTS.RENAME, normalizedPath, true) + `?newName=${encodedNewName}`;
   const response = await fetch(renameUrl, { method: 'POST' });
 
   if (!response.ok) {

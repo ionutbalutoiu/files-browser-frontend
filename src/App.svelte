@@ -10,6 +10,7 @@
   import { FileTable } from './components/FileTable';
   import UploadPanel from './components/UploadPanel.svelte';
   import SharedFilesView from './components/SharedFilesView.svelte';
+  import { LoadingState, ErrorState } from './components/shared';
 
   // State
   let currentPath = $state('/');
@@ -155,25 +156,14 @@
     {/if}
 
     {#if loading}
-      <div class="status loading">
-        <div class="spinner" aria-hidden="true"></div>
-        <p>Loading directory...</p>
-      </div>
+      <LoadingState message="Loading directory..." />
     {:else if error}
-      <div class="status error" role="alert">
-        <span class="error-icon" aria-hidden="true">⚠️</span>
-        <p class="error-message">{error.message}</p>
-        {#if error.status}
-          <p class="error-detail">HTTP {error.status}</p>
-        {/if}
-        <button 
-          type="button" 
-          class="retry-button"
-          onclick={() => loadDirectory(currentPath)}
-        >
-          Retry
-        </button>
-      </div>
+      <ErrorState
+        icon="⚠️"
+        message={error.message}
+        detail={error.status ? `HTTP ${error.status}` : ''}
+        onRetry={() => loadDirectory(currentPath)}
+      />
     {:else}
       <FileTable 
         entries={processedEntries}
@@ -274,77 +264,6 @@
     box-sizing: border-box;
   }
 
-  .status {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem 1rem;
-    text-align: center;
-  }
-
-  .loading {
-    color: var(--color-muted);
-  }
-
-  .spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-link);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin-bottom: 1rem;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  .error {
-    background: var(--color-error-bg);
-    border-radius: 8px;
-    margin-top: 1rem;
-  }
-
-  .error-icon {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .error-message {
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: var(--color-error);
-    margin: 0 0 0.25rem 0;
-  }
-
-  .error-detail {
-    color: var(--color-muted);
-    margin: 0 0 1rem 0;
-    font-size: 0.9rem;
-  }
-
-  .retry-button {
-    padding: 0.5rem 1.25rem;
-    font-size: 0.9rem;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-bg);
-    color: var(--color-text);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .retry-button:hover {
-    background: var(--color-hover);
-  }
-
-  .retry-button:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-
   .footer {
     padding: 1rem 0;
     border-top: 1px solid var(--color-border-light);
@@ -408,19 +327,6 @@
 
     .main {
       padding: 0 0.75rem 0.75rem;
-    }
-
-    .status {
-      padding: 2rem 0.5rem;
-    }
-
-    .error-message {
-      font-size: 1rem;
-    }
-
-    .retry-button {
-      padding: 0.6rem 1.5rem;
-      min-height: 44px;
     }
 
     .footer {

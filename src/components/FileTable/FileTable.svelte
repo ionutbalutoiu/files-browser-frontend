@@ -1,16 +1,7 @@
 <script lang="ts">
-  import type { NginxEntry, SortField, SortState } from '../../lib/types';
-  import {
-    deleteFile,
-    getDeletePath,
-    renameFile,
-    sharePublic,
-  } from '../../lib/api';
-  import type {
-    DeleteError,
-    RenameError,
-    SharePublicError,
-  } from '../../lib/types';
+  import type { NginxEntry, SortField, SortState, DeleteError, RenameError, SharePublicError } from '../../lib/types';
+  import { deleteFile, getDeletePath, renameFile, sharePublic } from '../../lib/api';
+  import { TOAST_TIMEOUT } from '../../lib/constants';
   import FileTableHeader from './FileTableHeader.svelte';
   import FileTableRow from './FileTableRow.svelte';
   import ActionMenu from './ActionMenu.svelte';
@@ -65,7 +56,7 @@
     toastTimeout = setTimeout(() => {
       toast = null;
       toastTimeout = null;
-    }, 4000);
+    }, TOAST_TIMEOUT);
   }
 
   function dismissToast() {

@@ -5,6 +5,7 @@
 
 import { parseNginxResponse } from '../nginxAutoindex';
 import { buildApiUrl } from '../url';
+import { API_ENDPOINTS } from '../constants';
 import type { FetchResult, FetchError } from '../types';
 
 /**
@@ -16,7 +17,7 @@ export async function fetchDirectory(path: string): Promise<FetchResult> {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
   // Build the fetch URL with proper normalization
-  const url = buildApiUrl('/files', normalizedPath, true);
+  const url = buildApiUrl(API_ENDPOINTS.FILES, normalizedPath, true);
 
   const response = await fetch(url, {
     headers: {
@@ -63,7 +64,7 @@ export async function fetchDirectory(path: string): Promise<FetchResult> {
 export function getFileUrl(directoryPath: string, fileName: string): string {
   const normalizedDir = directoryPath.startsWith('/') ? directoryPath : `/${directoryPath}`;
   const encodedName = encodeURIComponent(fileName);
-  return buildApiUrl('/files', `${normalizedDir}${encodedName}`, false);
+  return buildApiUrl(API_ENDPOINTS.FILES, `${normalizedDir}${encodedName}`, false);
 }
 
 /**

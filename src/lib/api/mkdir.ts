@@ -4,6 +4,7 @@
  */
 
 import { buildApiUrl } from '../url';
+import { API_ENDPOINTS } from '../constants';
 import type { CreateDirectoryResult, CreateDirectoryError } from '../types';
 
 /**
@@ -35,7 +36,7 @@ export async function createDirectory(
     : dirName;
 
   // Build mkdir URL with proper path normalization
-  const mkdirUrl = buildApiUrl('/mkdir', fullPath, true);
+  const mkdirUrl = buildApiUrl(API_ENDPOINTS.MKDIR, fullPath, true);
 
   const response = await fetch(mkdirUrl, {
     method: 'POST',

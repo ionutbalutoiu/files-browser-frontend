@@ -4,6 +4,7 @@
  */
 
 import { buildApiUrl } from '../url';
+import { API_ENDPOINTS } from '../constants';
 import type { DeleteError } from '../types';
 
 /**
@@ -12,7 +13,7 @@ import type { DeleteError } from '../types';
  */
 export async function deleteFile(path: string): Promise<void> {
   // Build delete URL with proper path normalization
-  const deleteUrl = buildApiUrl('/delete', path, false);
+  const deleteUrl = buildApiUrl(API_ENDPOINTS.DELETE, path, false);
 
   const response = await fetch(deleteUrl, {
     method: 'DELETE',

@@ -4,6 +4,7 @@
  */
 
 import { buildApiUrl } from '../url';
+import { API_ENDPOINTS, MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from '../constants';
 import type { UploadResult, UploadError } from '../types';
 
 /**
@@ -22,7 +23,7 @@ export async function uploadFiles(
   }
 
   // Build upload URL with proper path normalization
-  const uploadUrl = buildApiUrl('/upload', targetPath, true);
+  const uploadUrl = buildApiUrl(API_ENDPOINTS.UPLOAD, targetPath, true);
 
   const response = await fetch(uploadUrl, {
     method: 'POST',
@@ -66,7 +67,7 @@ export function uploadFilesWithProgress(
     }
 
     // Build upload URL with proper path normalization
-    const uploadUrl = buildApiUrl('/upload', targetPath, true);
+    const uploadUrl = buildApiUrl(API_ENDPOINTS.UPLOAD, targetPath, true);
 
     const xhr = new XMLHttpRequest();
 
@@ -112,12 +113,11 @@ export function uploadFilesWithProgress(
  * Validate files before upload (client-side).
  */
 export function validateFiles(files: FileList | File[]): string[] {
-  const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
   const errors: string[] = [];
 
   for (const file of files) {
-    if (file.size > maxSize) {
-      errors.push(`${file.name}: exceeds 2GB limit`);
+    if (file.size > MAX_FILE_SIZE) {
+      errors.push(`${file.name}: exceeds ${MAX_FILE_SIZE_LABEL} limit`);
     }
     if (file.name.startsWith('.')) {
       errors.push(`${file.name}: hidden files not allowed`);

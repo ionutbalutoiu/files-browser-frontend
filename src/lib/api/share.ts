@@ -4,6 +4,7 @@
  */
 
 import { buildApiUrl } from '../url';
+import { API_ENDPOINTS } from '../constants';
 import type { SharePublicResult, SharePublicError } from '../types';
 
 /**
@@ -27,7 +28,7 @@ export async function sharePublic(path: string): Promise<SharePublicResult> {
     throw { message: 'Invalid path' } as SharePublicError;
   }
 
-  const shareUrl = buildApiUrl('/share-public', normalizedPath, false);
+  const shareUrl = buildApiUrl(API_ENDPOINTS.SHARE_PUBLIC, normalizedPath, false);
 
   const response = await fetch(shareUrl, {
     method: 'POST',
@@ -70,7 +71,7 @@ export async function sharePublic(path: string): Promise<SharePublicResult> {
  * Returns an array of relative file paths.
  */
 export async function listSharePublicFiles(): Promise<string[]> {
-  const url = buildApiUrl('/share-public-files/', '', true);
+  const url = buildApiUrl(API_ENDPOINTS.SHARE_PUBLIC_FILES, '', true);
 
   const response = await fetch(url, {
     headers: {
@@ -109,7 +110,7 @@ export async function listSharePublicFiles(): Promise<string[]> {
  * @param path - The relative path of the file to unlink
  */
 export async function deletePublicShare(path: string): Promise<{ deleted: string }> {
-  const url = buildApiUrl('/share-public-delete', '', false);
+  const url = buildApiUrl(API_ENDPOINTS.SHARE_PUBLIC_DELETE, '', false);
 
   const response = await fetch(url, {
     method: 'DELETE',
