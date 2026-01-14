@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { uploadFilesWithProgress, validateFiles, formatTotalSize, type UploadResult, type UploadError } from '../lib/upload';
+  import { uploadFilesWithProgress, validateFiles, formatTotalSize, type UploadResult, type UploadError } from '../lib/api';
 
   interface Props {
     currentPath: string;

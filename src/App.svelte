@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { initRouter, onRouteChange, navigateTo, getCurrentPath, isSharedRoute, navigateToShared } from './lib/router';
-  import { fetchDirectory, type FetchError } from './lib/api';
+  import { fetchDirectory, type FetchError } from './lib/api/index';
   import { processEntries, toggleSort, DEFAULT_SORT, DEFAULT_FILTER, type SortState, type SortField, type FilterState } from './lib/sortFilter';
   import type { NginxEntry } from './lib/nginxAutoindex';
   

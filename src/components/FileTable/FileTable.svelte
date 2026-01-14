@@ -5,7 +5,7 @@
     getDeletePath,
     renameFile,
     sharePublic,
-  } from '../../lib/upload';
+  } from '../../lib/api';
   import type {
     DeleteError,
     RenameError,

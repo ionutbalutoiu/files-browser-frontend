@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { listSharePublicFiles, deletePublicShare, type SharePublicFilesError } from '../lib/api';
+  import { listSharePublicFiles, deletePublicShare, type SharePublicFilesError } from '../lib/api/index';
   import { navigateTo } from '../lib/router';
   import { getPublicFileUrl } from '../lib/config';
 
