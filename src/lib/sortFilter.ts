@@ -1,16 +1,7 @@
-import type { NginxEntry } from './nginxAutoindex';
+import type { NginxEntry, SortField, SortDirection, SortState, FilterState } from './types';
 
-export type SortField = 'name' | 'size' | 'mtime';
-export type SortDirection = 'asc' | 'desc';
-
-export interface SortState {
-  field: SortField;
-  direction: SortDirection;
-}
-
-export interface FilterState {
-  search: string;
-}
+// Re-export types for backwards compatibility
+export type { SortField, SortDirection, SortState, FilterState } from './types';
 
 /**
  * Default sort/filter state.

@@ -4,14 +4,10 @@
  * Also supports special routes like /shared for public shares.
  */
 
-export type RouteType = 'files' | 'shared';
+import type { RouteChangeCallback, BreadcrumbSegment, RouteInfo } from './types';
 
-export interface RouteInfo {
-  type: RouteType;
-  path: string;
-}
-
-export type RouteChangeCallback = (path: string) => void;
+// Re-export types for backwards compatibility
+export type { RouteChangeCallback, BreadcrumbSegment } from './types';
 
 let currentCallback: RouteChangeCallback | null = null;
 
@@ -90,11 +86,6 @@ export function navigateTo(path: string): void {
  * Parse path into breadcrumb segments.
  * Returns array of { name, path } objects.
  */
-export interface BreadcrumbSegment {
-  name: string;
-  path: string;
-}
-
 export function parseBreadcrumbs(path: string): BreadcrumbSegment[] {
   const segments: BreadcrumbSegment[] = [
     { name: 'Home', path: '/' }

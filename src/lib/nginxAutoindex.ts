@@ -1,16 +1,11 @@
 /**
- * Types for Nginx autoindex JSON response.
- * Fields are based on nginx autoindex_format json output.
+ * Nginx autoindex JSON response parser.
  */
 
-export interface NginxEntry {
-  name: string;
-  type: 'file' | 'directory';
-  size?: number;   // Only present for files
-  mtime?: string;  // ISO 8601 format datetime
-}
+import type { NginxEntry } from './types';
 
-export type NginxAutoindexResponse = NginxEntry[];
+// Re-export types for backwards compatibility
+export type { NginxEntry, NginxAutoindexResponse } from './types';
 
 /**
  * Parse and validate nginx autoindex JSON response.

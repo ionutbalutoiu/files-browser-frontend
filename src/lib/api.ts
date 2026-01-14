@@ -1,15 +1,9 @@
-import { parseNginxResponse, type NginxEntry } from './nginxAutoindex';
+import { parseNginxResponse } from './nginxAutoindex';
 import { buildApiUrl } from './url';
+import type { FetchResult, FetchError } from './types';
 
-export interface FetchResult {
-  entries: NginxEntry[];
-  path: string;
-}
-
-export interface FetchError {
-  message: string;
-  status?: number;
-}
+// Re-export types for backwards compatibility
+export type { FetchResult, FetchError } from './types';
 
 /**
  * Fetch directory listing from nginx autoindex.

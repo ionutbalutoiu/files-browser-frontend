@@ -1,18 +1,27 @@
 /**
- * File upload API for the files browser.
+ * File operations API for the files browser.
+ * Handles upload, delete, rename, and directory creation.
  */
 
 import { buildApiUrl } from './url';
+import type {
+  UploadResult,
+  UploadError,
+  DeleteError,
+  RenameError,
+  CreateDirectoryResult,
+  CreateDirectoryError,
+} from './types';
 
-export interface UploadResult {
-  uploaded: string[];
-  skipped: string[];
-  errors?: string[];
-}
-
-export interface UploadError {
-  message: string;
-}
+// Re-export types for backwards compatibility
+export type {
+  UploadResult,
+  UploadError,
+  DeleteError,
+  RenameError,
+  CreateDirectoryResult,
+  CreateDirectoryError,
+} from './types';
 
 /**
  * Upload files to the server.
@@ -155,11 +164,6 @@ export function formatTotalSize(files: FileList | File[]): string {
   return `${formatted} ${units[exponent]}`;
 }
 
-export interface DeleteError {
-  message: string;
-  status?: number;
-}
-
 /**
  * Delete a file or empty directory.
  * @param path - Full path to file or directory (e.g., "/photos/2026/image.jpg")
@@ -207,11 +211,6 @@ export function getDeletePath(directoryPath: string, fileName: string): string {
   return fileName;
 }
 
-export interface RenameError {
-  message: string;
-  status?: number;
-}
-
 /**
  * Rename a file or directory.
  * @param oldPath - Full path to file or directory (e.g., "/photos/2026/image.jpg")
@@ -251,15 +250,6 @@ export async function renameFile(oldPath: string, newName: string): Promise<void
         throw { message: errorMessage, status: response.status } as RenameError;
     }
   }
-}
-
-export interface CreateDirectoryResult {
-  created: string;
-}
-
-export interface CreateDirectoryError {
-  message: string;
-  status?: number;
 }
 
 /**
