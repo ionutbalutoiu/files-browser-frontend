@@ -111,3 +111,16 @@ export interface CreateDirectoryError {
   message: string;
   status?: number;
 }
+
+// =============================================================================
+// Share Types
+// =============================================================================
+
+export interface SharePublicResult {
+  shared: string;
+}
+
+export interface SharePublicError {
+  message: string;
+  status?: number;
+}

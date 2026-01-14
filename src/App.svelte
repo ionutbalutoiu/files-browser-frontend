@@ -7,7 +7,7 @@
   
   import Breadcrumbs from './components/Breadcrumbs.svelte';
   import Toolbar from './components/Toolbar.svelte';
-  import FileTable from './components/FileTable.svelte';
+  import { FileTable } from './components/FileTable';
   import UploadPanel from './components/UploadPanel.svelte';
   import SharedFilesView from './components/SharedFilesView.svelte';
 

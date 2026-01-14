@@ -11,6 +11,8 @@ import type {
   RenameError,
   CreateDirectoryResult,
   CreateDirectoryError,
+  SharePublicResult,
+  SharePublicError,
 } from './types';
 
 // Re-export types for backwards compatibility
@@ -21,6 +23,8 @@ export type {
   RenameError,
   CreateDirectoryResult,
   CreateDirectoryError,
+  SharePublicResult,
+  SharePublicError,
 } from './types';
 
 /**
@@ -316,14 +320,6 @@ export async function createDirectory(
   }
 
   return result as CreateDirectoryResult;
-}
-export interface SharePublicResult {
-  shared: string;
-}
-
-export interface SharePublicError {
-  message: string;
-  status?: number;
 }
 
 /**
