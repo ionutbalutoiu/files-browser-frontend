@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { parseBreadcrumbs, type BreadcrumbSegment } from '../lib/router';
+  import { parseBreadcrumbs } from '../lib/router';
+  import type { BreadcrumbSegment } from '../lib/types';
 
   interface Props {
     path: string;

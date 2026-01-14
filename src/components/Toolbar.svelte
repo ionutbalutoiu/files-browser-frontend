@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { SortField, SortState } from '../lib/sortFilter';
-  import { createDirectory, type CreateDirectoryError } from '../lib/api';
+  import type { SortField, SortState, CreateDirectoryError } from '../lib/types';
+  import { createDirectory } from '../lib/api';
 
   interface Props {
     search: string;

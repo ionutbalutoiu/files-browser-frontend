@@ -6,9 +6,6 @@
 
 import type { RouteChangeCallback, BreadcrumbSegment, RouteInfo } from './types';
 
-// Re-export types for backwards compatibility
-export type { RouteChangeCallback, BreadcrumbSegment } from './types';
-
 let currentCallback: RouteChangeCallback | null = null;
 
 /**

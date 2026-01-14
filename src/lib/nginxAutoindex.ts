@@ -4,9 +4,6 @@
 
 import type { NginxEntry } from './types';
 
-// Re-export types for backwards compatibility
-export type { NginxEntry, NginxAutoindexResponse } from './types';
-
 /**
  * Parse and validate nginx autoindex JSON response.
  * Resilient to extra or missing fields.

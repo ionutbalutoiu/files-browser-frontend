@@ -1,8 +1,5 @@
 import type { NginxEntry, SortField, SortDirection, SortState, FilterState } from './types';
 
-// Re-export types for backwards compatibility
-export type { SortField, SortDirection, SortState, FilterState } from './types';
-
 /**
  * Default sort/filter state.
  */
