@@ -103,3 +103,13 @@ export interface CreateDirectoryResult {
 export interface SharePublicResult {
   shared: string
 }
+
+// =============================================================================
+// Move Types
+// =============================================================================
+
+export interface MoveResult {
+  source: string
+  dest: string
+  success: boolean
+}

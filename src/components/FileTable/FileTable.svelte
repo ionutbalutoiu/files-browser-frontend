@@ -27,6 +27,8 @@
     getSharingEntry,
     handleShare,
   } from "../../lib/stores/fileTable"
+  import { moveFile, buildMovePath } from "../../lib/api"
+  import { showToast } from "../../lib/stores/toast.svelte"
   import FileTableHeader from "./FileTableHeader.svelte"
   import FileTableRow from "./FileTableRow.svelte"
   import ActionMenu from "./ActionMenu.svelte"
@@ -39,6 +41,7 @@
     onNavigate: (path: string) => void
     onSortChange: (field: SortField) => void
     onDelete: () => void
+    onRefresh: () => void
   }
 
   let {
@@ -48,7 +51,12 @@
     onNavigate,
     onSortChange,
     onDelete,
+    onRefresh,
   }: Props = $props()
+
+  // Drag and drop state
+  let draggedEntry = $state<NginxEntry | null>(null)
+  let dropTargetEntry = $state<NginxEntry | null>(null)
 
   // Wrap toggleMenu to also clear delete error
   function toggleMenu(entryName: string, event: MouseEvent) {
@@ -75,6 +83,68 @@
   // Wrap handleShare to pass currentPath
   function onShare(entry: NginxEntry) {
     handleShare(entry, currentPath)
+  }
+
+  // Drag and drop handlers
+  function handleDragStart(entry: NginxEntry) {
+    draggedEntry = entry
+  }
+
+  function handleDragEnd() {
+    draggedEntry = null
+    dropTargetEntry = null
+  }
+
+  function handleDragEnter(targetEntry: NginxEntry) {
+    // Don't allow dropping onto itself
+    if (draggedEntry?.name === targetEntry.name) return
+
+    // Don't allow dropping a directory into itself (same name check)
+    if (
+      draggedEntry?.type === "directory" &&
+      draggedEntry.name === targetEntry.name
+    )
+      return
+
+    dropTargetEntry = targetEntry
+  }
+
+  function handleDragLeave(_targetEntry: NginxEntry) {
+    // Only clear if we're leaving the current drop target
+    dropTargetEntry = null
+  }
+
+  async function handleDrop(targetEntry: NginxEntry) {
+    if (!draggedEntry) return
+
+    // Don't allow dropping onto itself
+    if (draggedEntry.name === targetEntry.name) {
+      handleDragEnd()
+      return
+    }
+
+    // Build source and destination paths
+    const sourcePath = buildMovePath(currentPath, draggedEntry.name)
+    const destDir = buildMovePath(currentPath, targetEntry.name)
+    const destPath = buildMovePath(destDir, draggedEntry.name)
+
+    const itemName = draggedEntry.name
+    const targetName = targetEntry.name
+
+    // Clear drag state before async operation
+    handleDragEnd()
+
+    try {
+      await moveFile(sourcePath, destPath)
+      showToast(`Moved "${itemName}" to "${targetName}"`, "success")
+      onRefresh()
+    } catch (error) {
+      const message =
+        error && typeof error === "object" && "message" in error
+          ? (error as { message: string }).message
+          : "Move failed"
+      showToast(message, "error")
+    }
   }
 
   // Derived values for menu display
@@ -110,11 +180,18 @@
               ? (getDeleteError()?.message ?? null)
               : null}
             isSubmitting={getIsSubmitting()}
+            isDragging={draggedEntry?.name === entry.name}
+            isDropTarget={dropTargetEntry?.name === entry.name}
             {onNavigate}
             onMenuToggle={toggleMenu}
             onRenameChange={setRenameValue}
             onRenameConfirm={() => handleConfirmRename(entry.name)}
             onRenameCancel={cancelRename}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDrop={handleDrop}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
           />
         {/each}
       {/if}

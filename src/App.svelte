@@ -191,6 +191,7 @@
           onNavigate={handleNavigate}
           onSortChange={handleSortChange}
           onDelete={() => loadDirectory(currentPath)}
+          onRefresh={() => loadDirectory(currentPath)}
         />
 
         <footer class="footer">

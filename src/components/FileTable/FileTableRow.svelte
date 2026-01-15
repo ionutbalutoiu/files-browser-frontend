@@ -14,11 +14,18 @@
     renameError: string | null
     deleteError: string | null
     isSubmitting: boolean
+    isDragging: boolean
+    isDropTarget: boolean
     onNavigate: (path: string) => void
     onMenuToggle: (entryName: string, event: MouseEvent) => void
     onRenameChange: (value: string) => void
     onRenameConfirm: () => void
     onRenameCancel: () => void
+    onDragStart: (entry: NginxEntry) => void
+    onDragEnd: () => void
+    onDrop: (targetEntry: NginxEntry) => void
+    onDragEnter: (targetEntry: NginxEntry) => void
+    onDragLeave: (targetEntry: NginxEntry) => void
   }
 
   let {
@@ -31,11 +38,18 @@
     renameError,
     deleteError,
     isSubmitting,
+    isDragging,
+    isDropTarget,
     onNavigate,
     onMenuToggle,
     onRenameChange,
     onRenameConfirm,
     onRenameCancel,
+    onDragStart,
+    onDragEnd,
+    onDrop,
+    onDragEnter,
+    onDragLeave,
   }: Props = $props()
 
   let renameInputRef: ReturnType<typeof InlineNameInput> | null = $state(null)
@@ -87,14 +101,74 @@
       }
     }
   })
+
+  // Drag and drop handlers
+  function handleDragStart(event: DragEvent) {
+    if (isRenaming || isDeleting) {
+      event.preventDefault()
+      return
+    }
+    event.dataTransfer?.setData("text/plain", entry.name)
+    event.dataTransfer!.effectAllowed = "move"
+    onDragStart(entry)
+  }
+
+  function handleDragEnd() {
+    onDragEnd()
+  }
+
+  function handleDragOver(event: DragEvent) {
+    // Only directories can be drop targets
+    if (entry.type !== "directory") return
+
+    event.preventDefault()
+    event.dataTransfer!.dropEffect = "move"
+  }
+
+  function handleDragEnter(event: DragEvent) {
+    // Only directories can be drop targets
+    if (entry.type !== "directory") return
+
+    event.preventDefault()
+    onDragEnter(entry)
+  }
+
+  function handleDragLeave(event: DragEvent) {
+    // Only directories can be drop targets
+    if (entry.type !== "directory") return
+
+    // Check if we're leaving to a child element (ignore those)
+    const relatedTarget = event.relatedTarget as HTMLElement | null
+    const currentTarget = event.currentTarget as HTMLElement
+    if (relatedTarget && currentTarget.contains(relatedTarget)) return
+
+    onDragLeave(entry)
+  }
+
+  function handleDrop(event: DragEvent) {
+    // Only directories can be drop targets
+    if (entry.type !== "directory") return
+
+    event.preventDefault()
+    onDrop(entry)
+  }
 </script>
 
 <tr
   class="file-row"
   class:directory={entry.type === "directory"}
   class:has-error={deleteError !== null}
+  class:dragging={isDragging}
+  class:drop-target={isDropTarget}
   tabindex="0"
+  draggable={!isRenaming && !isDeleting}
   onkeydown={handleKeydown}
+  ondragstart={handleDragStart}
+  ondragend={handleDragEnd}
+  ondragover={handleDragOver}
+  ondragenter={handleDragEnter}
+  ondragleave={handleDragLeave}
+  ondrop={handleDrop}
 >
   <td class="col-name">
     <span class="icon" aria-hidden="true">{getIcon(entry.type)}</span>
@@ -184,6 +258,29 @@
 
   .file-row.has-error {
     background: var(--color-error-bg, rgba(220, 53, 69, 0.1));
+  }
+
+  .file-row.dragging {
+    opacity: 0.5;
+    background: var(--color-hover);
+  }
+
+  .file-row.drop-target {
+    background: var(--color-active);
+    outline: 2px dashed var(--color-link);
+    outline-offset: -2px;
+  }
+
+  .file-row.drop-target td {
+    border-bottom-color: transparent;
+  }
+
+  .file-row[draggable="true"] {
+    cursor: grab;
+  }
+
+  .file-row[draggable="true"]:active {
+    cursor: grabbing;
   }
 
   td {

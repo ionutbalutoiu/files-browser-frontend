@@ -23,6 +23,9 @@ export { deleteFile, getDeletePath } from "./delete"
 // File renaming
 export { renameFile } from "./rename"
 
+// File moving
+export { moveFile, buildMovePath } from "./move"
+
 // Directory creation
 export { createDirectory } from "./mkdir"
 
@@ -36,4 +39,5 @@ export type {
   UploadResult,
   CreateDirectoryResult,
   SharePublicResult,
+  MoveResult,
 } from "../types"

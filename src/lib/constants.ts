@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
   DELETE: "/delete",
   RENAME: "/rename",
   MKDIR: "/mkdir",
+  MV: "/mv",
   SHARE_PUBLIC: "/share-public",
   SHARE_PUBLIC_FILES: "/share-public-files/",
   SHARE_PUBLIC_DELETE: "/share-public-delete",
