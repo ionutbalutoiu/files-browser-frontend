@@ -8,6 +8,24 @@ import { API_ENDPOINTS, MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from "../constants"
 import type { UploadResult, AppError } from "../types"
 
 /**
+ * Map HTTP status codes to user-friendly upload error messages.
+ */
+function getUploadErrorMessage(status: number): string {
+  switch (status) {
+    case 409:
+      return "File already exists"
+    case 413:
+      return "File too large"
+    case 415:
+      return "File type not allowed"
+    case 507:
+      return "Not enough storage space"
+    default:
+      return `Upload failed (${status})`
+  }
+}
+
+/**
  * Upload files to the server.
  * @param files - Files to upload
  * @param targetPath - Target directory path (e.g., "/photos/2026/")
@@ -43,7 +61,7 @@ export async function uploadFiles(
   }
 
   if (!response.ok && !result.uploaded?.length) {
-    throw { message: `Upload failed: ${response.status}` } as AppError
+    throw { message: getUploadErrorMessage(response.status) } as AppError
   }
 
   return result
@@ -91,7 +109,7 @@ export function uploadFilesWithProgress(
           onProgress(100)
           resolve(result)
         } else {
-          reject({ message: `Upload failed: ${xhr.status}` } as AppError)
+          reject({ message: getUploadErrorMessage(xhr.status) } as AppError)
         }
       } catch {
         reject({ message: "Invalid server response" } as AppError)
