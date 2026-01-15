@@ -1,120 +1,125 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { listSharePublicFiles, deletePublicShare, type SharePublicFilesError } from '../lib/api';
-  import { navigateTo } from '../lib/router';
-  import { getPublicFileUrl } from '../lib/config';
-  import { COPY_FEEDBACK_TIMEOUT, DELETE_ERROR_TIMEOUT } from '../lib/constants';
-  import { LoadingState, ErrorState, EmptyState } from './shared';
+  import { onMount, onDestroy } from "svelte"
+  import {
+    listSharePublicFiles,
+    deletePublicShare,
+    type AppError,
+  } from "../lib/api"
+  import { navigateTo } from "../lib/router"
+  import { getPublicFileUrl } from "../lib/config"
+  import { COPY_FEEDBACK_TIMEOUT, DELETE_ERROR_TIMEOUT } from "../lib/constants"
+  import { getFileName, getDirectoryPath } from "../lib/path"
+  import { LoadingState, ErrorState, EmptyState, ConfirmDialog } from "./shared"
 
   // State
-  let sharedFiles = $state<string[]>([]);
-  let copiedPath = $state<string | null>(null);
-  let confirmPath = $state<string | null>(null);
-  let deletingPath = $state<string | null>(null);
-  let deleteError = $state<string | null>(null);
-  let loading = $state(true);
-  let error = $state<SharePublicFilesError | null>(null);
+  let sharedFiles = $state<string[]>([])
+  let copiedPath = $state<string | null>(null)
+  let confirmPath = $state<string | null>(null)
+  let deletingPath = $state<string | null>(null)
+  let deleteError = $state<string | null>(null)
+  let loading = $state(true)
+  let error = $state<AppError | null>(null)
+
+  // Timeout tracking for cleanup
+  let copyTimeoutId: ReturnType<typeof setTimeout> | null = null
+  let errorTimeoutId: ReturnType<typeof setTimeout> | null = null
 
   // Fetch shared files
   async function loadSharedFiles() {
-    loading = true;
-    error = null;
-    sharedFiles = [];
+    loading = true
+    error = null
+    sharedFiles = []
 
     try {
-      sharedFiles = await listSharePublicFiles();
+      sharedFiles = await listSharePublicFiles()
     } catch (e) {
-      error = e as SharePublicFilesError;
+      error = e as AppError
     } finally {
-      loading = false;
+      loading = false
     }
   }
 
   // Navigate to file's parent directory
   function navigateToFile(filePath: string) {
-    // Extract the directory path from the file path
-    const lastSlash = filePath.lastIndexOf('/');
-    const dirPath = lastSlash > 0 ? '/' + filePath.substring(0, lastSlash + 1) : '/';
-    navigateTo(dirPath);
-  }
-
-  // Get filename from path
-  function getFileName(filePath: string): string {
-    const lastSlash = filePath.lastIndexOf('/');
-    return lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
-  }
-
-  // Get directory from path
-  function getDirectory(filePath: string): string {
-    const lastSlash = filePath.lastIndexOf('/');
-    return lastSlash > 0 ? filePath.substring(0, lastSlash + 1) : '/';
+    const dirPath = "/" + getDirectoryPath(filePath)
+    navigateTo(dirPath)
   }
 
   // Copy public link to clipboard
   async function copyLink(filePath: string, event: MouseEvent) {
-    event.stopPropagation();
-    const url = getPublicFileUrl(filePath);
+    event.stopPropagation()
+    const url = getPublicFileUrl(filePath)
     try {
-      await navigator.clipboard.writeText(url);
-      copiedPath = filePath;
+      await navigator.clipboard.writeText(url)
+      copiedPath = filePath
+
+      // Clear any existing timeout
+      if (copyTimeoutId) {
+        clearTimeout(copyTimeoutId)
+      }
+
       // Reset after timeout
-      setTimeout(() => {
+      copyTimeoutId = setTimeout(() => {
         if (copiedPath === filePath) {
-          copiedPath = null;
+          copiedPath = null
         }
-      }, COPY_FEEDBACK_TIMEOUT);
+        copyTimeoutId = null
+      }, COPY_FEEDBACK_TIMEOUT)
     } catch (err) {
-      console.error('Failed to copy link:', err);
+      console.error("Failed to copy link:", err)
     }
   }
 
   // Request unlink confirmation
   function requestUnlink(filePath: string, event: MouseEvent) {
-    event.stopPropagation();
-    confirmPath = filePath;
+    event.stopPropagation()
+    confirmPath = filePath
   }
 
   // Cancel unlink confirmation
   function cancelUnlink() {
-    confirmPath = null;
-  }
-
-  // Handle dialog keyboard events
-  function handleDialogKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      cancelUnlink();
-    }
+    confirmPath = null
   }
 
   // Confirm and execute unlink
   async function confirmUnlink() {
-    if (!confirmPath) return;
-    
-    const filePath = confirmPath;
-    confirmPath = null;
-    deletingPath = filePath;
-    deleteError = null;
+    if (!confirmPath) return
+
+    const filePath = confirmPath
+    confirmPath = null
+    deletingPath = filePath
+    deleteError = null
+
+    // Clear any existing error timeout
+    if (errorTimeoutId) {
+      clearTimeout(errorTimeoutId)
+      errorTimeoutId = null
+    }
 
     try {
-      await deletePublicShare(filePath);
+      await deletePublicShare(filePath)
       // Remove from local list for snappy UX
-      sharedFiles = sharedFiles.filter(f => f !== filePath);
+      sharedFiles = sharedFiles.filter((f) => f !== filePath)
     } catch (err) {
-      deleteError = (err as SharePublicFilesError).message;
+      deleteError = (err as AppError).message
       // Clear error after timeout
-      setTimeout(() => {
-        if (deleteError) {
-          deleteError = null;
-        }
-      }, DELETE_ERROR_TIMEOUT);
+      errorTimeoutId = setTimeout(() => {
+        deleteError = null
+        errorTimeoutId = null
+      }, DELETE_ERROR_TIMEOUT)
     } finally {
-      deletingPath = null;
+      deletingPath = null
     }
   }
 
   onMount(() => {
-    loadSharedFiles();
-  });
+    loadSharedFiles()
+  })
+
+  onDestroy(() => {
+    if (copyTimeoutId) clearTimeout(copyTimeoutId)
+    if (errorTimeoutId) clearTimeout(errorTimeoutId)
+  })
 </script>
 
 <div class="shared-files-view">
@@ -124,8 +129,8 @@
       Publicly Shared Files
     </h2>
     {#if !loading && !error}
-      <button 
-        type="button" 
+      <button
+        type="button"
         class="refresh-button"
         onclick={loadSharedFiles}
         aria-label="Refresh list"
@@ -139,18 +144,12 @@
     <LoadingState message="Loading shared files..." />
   {:else if error}
     {#if error.notEnabled}
-      <ErrorState
-        icon="🚫"
-        message={error.message}
-      >
-        The public sharing feature needs to be enabled in the server configuration.
+      <ErrorState icon="🚫" message={error.message}>
+        The public sharing feature needs to be enabled in the server
+        configuration.
       </ErrorState>
     {:else}
-      <ErrorState
-        icon="⚠️"
-        message={error.message}
-        onRetry={loadSharedFiles}
-      />
+      <ErrorState icon="⚠️" message={error.message} onRetry={loadSharedFiles} />
     {/if}
   {:else if sharedFiles.length === 0}
     <EmptyState
@@ -163,10 +162,10 @@
       <div class="delete-error" role="alert">
         <span class="delete-error-icon" aria-hidden="true">⚠️</span>
         <span class="delete-error-message">{deleteError}</span>
-        <button 
-          type="button" 
+        <button
+          type="button"
           class="delete-error-dismiss"
-          onclick={() => deleteError = null}
+          onclick={() => (deleteError = null)}
           aria-label="Dismiss error"
         >
           ✕
@@ -175,13 +174,17 @@
     {/if}
     <div class="file-list">
       <div class="list-header">
-        <span class="header-count">{sharedFiles.length} shared file{sharedFiles.length !== 1 ? 's' : ''}</span>
+        <span class="header-count"
+          >{sharedFiles.length} shared file{sharedFiles.length !== 1
+            ? "s"
+            : ""}</span
+        >
       </div>
       <ul class="files" role="list">
         {#each sharedFiles as filePath}
           <li class="file-item">
             <div class="file-row">
-              <button 
+              <button
                 type="button"
                 class="file-link"
                 onclick={() => navigateToFile(filePath)}
@@ -190,7 +193,7 @@
                 <span class="file-icon" aria-hidden="true">📄</span>
                 <span class="file-info">
                   <span class="file-name">{getFileName(filePath)}</span>
-                  <span class="file-path">{getDirectory(filePath)}</span>
+                  <span class="file-path">{getDirectoryPath(filePath)}</span>
                 </span>
                 <span class="navigate-icon" aria-hidden="true">→</span>
               </button>
@@ -219,7 +222,8 @@
                   title="Remove public share"
                 >
                   {#if deletingPath === filePath}
-                    <span class="btn-icon spinner-small" aria-hidden="true"></span>
+                    <span class="btn-icon spinner-small" aria-hidden="true"
+                    ></span>
                     <span class="btn-text">Removing...</span>
                   {:else}
                     <span class="btn-icon" aria-hidden="true">🗑️</span>
@@ -237,48 +241,18 @@
 
 <!-- Confirmation Dialog -->
 {#if confirmPath}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div 
-    class="dialog-overlay" 
-    onclick={cancelUnlink}
-    onkeydown={handleDialogKeydown}
-    role="presentation"
+  <ConfirmDialog
+    title="Remove Public Share"
+    confirmLabel="Remove"
+    variant="danger"
+    onConfirm={confirmUnlink}
+    onCancel={cancelUnlink}
   >
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-    <div 
-      class="dialog" 
-      role="alertdialog" 
-      aria-modal="true"
-      aria-labelledby="dialog-title"
-      aria-describedby="dialog-description"
-      tabindex="0"
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => e.stopPropagation()}
-    >
-      <h2 id="dialog-title" class="dialog-title">Remove Public Share</h2>
-      <p id="dialog-description" class="dialog-message">
-        Remove public share for <strong>"{confirmPath}"</strong>?
-        <br><br>
-        The file will no longer be accessible via its public link.
-      </p>
-      <div class="dialog-actions">
-        <button 
-          type="button" 
-          class="dialog-btn cancel" 
-          onclick={cancelUnlink}
-        >
-          Cancel
-        </button>
-        <button 
-          type="button" 
-          class="dialog-btn confirm" 
-          onclick={confirmUnlink}
-        >
-          Remove
-        </button>
-      </div>
-    </div>
-  </div>
+    <p>
+      Remove public share for <strong>"{confirmPath}"</strong>?
+    </p>
+    <p>The file will no longer be accessible via its public link.</p>
+  </ConfirmDialog>
 {/if}
 
 <style>
@@ -606,111 +580,5 @@
     .file-path {
       font-size: 0.75rem;
     }
-  }
-
-  /* ===================================
-     Confirmation Dialog
-     =================================== */
-
-  .dialog-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
-    animation: fadeIn 0.15s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  .dialog {
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    max-width: 400px;
-    width: 100%;
-    padding: 1.5rem;
-    animation: slideIn 0.15s ease-out;
-  }
-
-  @keyframes slideIn {
-    from { 
-      opacity: 0;
-      transform: scale(0.95) translateY(-10px);
-    }
-    to { 
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
-
-  .dialog-title {
-    margin: 0 0 0.75rem 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  .dialog-message {
-    margin: 0 0 1.5rem 0;
-    font-size: 0.95rem;
-    color: var(--color-muted);
-    line-height: 1.5;
-  }
-
-  .dialog-message strong {
-    color: var(--color-text);
-    font-weight: 600;
-    word-break: break-word;
-  }
-
-  .dialog-actions {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: flex-end;
-  }
-
-  .dialog-btn {
-    padding: 0.6rem 1.25rem;
-    font-size: 0.9rem;
-    font-family: inherit;
-    font-weight: 500;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.15s, border-color 0.15s;
-  }
-
-  .dialog-btn:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-
-  .dialog-btn.cancel {
-    background: transparent;
-    border: 1px solid var(--color-border);
-    color: var(--color-text);
-  }
-
-  .dialog-btn.cancel:hover {
-    background: var(--color-hover);
-    border-color: var(--color-border-hover);
-  }
-
-  .dialog-btn.confirm {
-    background: var(--color-error);
-    border: 1px solid var(--color-error);
-    color: white;
-  }
-
-  .dialog-btn.confirm:hover {
-    background: #b91c1c;
-    border-color: #b91c1c;
   }
 </style>

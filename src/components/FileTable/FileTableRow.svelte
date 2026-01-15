@@ -1,24 +1,24 @@
 <script lang="ts">
-  import type { NginxEntry } from '../../lib/types';
-  import { formatSize, formatDate } from '../../lib/format';
-  import { getFileUrl, getDirectoryUrl } from '../../lib/api';
-  import InlineNameInput from '../shared/InlineNameInput.svelte';
+  import type { NginxEntry } from "../../lib/types"
+  import { formatSize, formatDate } from "../../lib/format"
+  import { getFileUrl, getDirectoryUrl } from "../../lib/api"
+  import InlineNameInput from "../shared/InlineNameInput.svelte"
 
   interface Props {
-    entry: NginxEntry;
-    currentPath: string;
-    isMenuOpen: boolean;
-    isDeleting: boolean;
-    isRenaming: boolean;
-    renameValue: string;
-    renameError: string | null;
-    deleteError: string | null;
-    isSubmitting: boolean;
-    onNavigate: (path: string) => void;
-    onMenuToggle: (entryName: string, event: MouseEvent) => void;
-    onRenameChange: (value: string) => void;
-    onRenameConfirm: () => void;
-    onRenameCancel: () => void;
+    entry: NginxEntry
+    currentPath: string
+    isMenuOpen: boolean
+    isDeleting: boolean
+    isRenaming: boolean
+    renameValue: string
+    renameError: string | null
+    deleteError: string | null
+    isSubmitting: boolean
+    onNavigate: (path: string) => void
+    onMenuToggle: (entryName: string, event: MouseEvent) => void
+    onRenameChange: (value: string) => void
+    onRenameConfirm: () => void
+    onRenameCancel: () => void
   }
 
   let {
@@ -36,62 +36,62 @@
     onRenameChange,
     onRenameConfirm,
     onRenameCancel,
-  }: Props = $props();
+  }: Props = $props()
 
-  let renameInputRef: ReturnType<typeof InlineNameInput> | null = $state(null);
+  let renameInputRef: ReturnType<typeof InlineNameInput> | null = $state(null)
 
-  function getIcon(type: 'file' | 'directory'): string {
-    return type === 'directory' ? '📁' : '📄';
+  function getIcon(type: "file" | "directory"): string {
+    return type === "directory" ? "📁" : "📄"
   }
 
   function handleDirectoryClick(event: MouseEvent) {
-    event.preventDefault();
-    const newPath = getDirectoryUrl(currentPath, entry.name);
-    onNavigate(newPath);
+    event.preventDefault()
+    const newPath = getDirectoryUrl(currentPath, entry.name)
+    onNavigate(newPath)
   }
 
   function handleKeydown(event: KeyboardEvent) {
     // Don't handle navigation keys when renaming
-    if (isRenaming) return;
+    if (isRenaming) return
 
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      if (entry.type === 'directory') {
-        const newPath = getDirectoryUrl(currentPath, entry.name);
-        onNavigate(newPath);
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      if (entry.type === "directory") {
+        const newPath = getDirectoryUrl(currentPath, entry.name)
+        onNavigate(newPath)
       } else {
-        window.open(getFileUrl(currentPath, entry.name), '_blank');
+        window.open(getFileUrl(currentPath, entry.name), "_blank")
       }
     }
   }
 
   function handleMenuKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      onMenuToggle(entry.name, event as unknown as MouseEvent);
+    if (event.key === "Escape") {
+      onMenuToggle(entry.name, event as unknown as MouseEvent)
     }
   }
 
   // Focus input when rename mode activates
   $effect(() => {
     if (isRenaming && renameInputRef) {
-      renameInputRef.focus();
-      if (entry.type === 'file') {
-        const lastDot = entry.name.lastIndexOf('.');
+      renameInputRef.focus()
+      if (entry.type === "file") {
+        const lastDot = entry.name.lastIndexOf(".")
         if (lastDot > 0) {
-          renameInputRef.setSelectionRange(0, lastDot);
+          renameInputRef.setSelectionRange(0, lastDot)
         } else {
-          renameInputRef.select();
+          renameInputRef.select()
         }
       } else {
-        renameInputRef.select();
+        renameInputRef.select()
       }
     }
-  });
+  })
 </script>
 
 <tr
   class="file-row"
-  class:directory={entry.type === 'directory'}
+  class:directory={entry.type === "directory"}
   class:has-error={deleteError !== null}
   tabindex="0"
   onkeydown={handleKeydown}
@@ -110,7 +110,7 @@
         onConfirm={onRenameConfirm}
         onCancel={onRenameCancel}
       />
-    {:else if entry.type === 'directory'}
+    {:else if entry.type === "directory"}
       <a
         href="#{getDirectoryUrl(currentPath, entry.name)}"
         onclick={handleDirectoryClick}
@@ -136,7 +136,7 @@
     {/if}
   </td>
   <td class="col-size">
-    {entry.type === 'directory' ? '—' : formatSize(entry.size)}
+    {entry.type === "directory" ? "—" : formatSize(entry.size)}
   </td>
   <td class="col-modified">
     <span class="date-full">{formatDate(entry.mtime)}</span>
@@ -265,7 +265,9 @@
     font-size: 1.2rem;
     font-weight: bold;
     cursor: pointer;
-    transition: background-color 0.15s, color 0.15s;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
   }
 
   .menu-trigger:hover {

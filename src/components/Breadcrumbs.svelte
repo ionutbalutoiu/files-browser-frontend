@@ -1,25 +1,25 @@
 <script lang="ts">
-  import { parseBreadcrumbs } from '../lib/router';
-  import type { BreadcrumbSegment } from '../lib/types';
+  import { parseBreadcrumbs } from "../lib/router"
+  import type { BreadcrumbSegment } from "../lib/types"
 
   interface Props {
-    path: string;
-    onNavigate: (path: string) => void;
+    path: string
+    onNavigate: (path: string) => void
   }
 
-  let { path, onNavigate }: Props = $props();
+  let { path, onNavigate }: Props = $props()
 
-  let segments: BreadcrumbSegment[] = $derived(parseBreadcrumbs(path));
+  let segments: BreadcrumbSegment[] = $derived(parseBreadcrumbs(path))
 
   function handleClick(segment: BreadcrumbSegment, event: MouseEvent) {
-    event.preventDefault();
-    onNavigate(segment.path);
+    event.preventDefault()
+    onNavigate(segment.path)
   }
 
   function handleKeydown(segment: BreadcrumbSegment, event: KeyboardEvent) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onNavigate(segment.path);
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      onNavigate(segment.path)
     }
   }
 </script>
@@ -29,7 +29,7 @@
     {#each segments as segment, index}
       <li>
         {#if index < segments.length - 1}
-          <a 
+          <a
             href="#{segment.path}"
             onclick={(e) => handleClick(segment, e)}
             onkeydown={(e) => handleKeydown(segment, e)}

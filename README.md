@@ -27,6 +27,7 @@ npm run build    # Build for production → dist/
 ## Deployment
 
 The app expects:
+
 - Static files served at `/ui/`
 - Nginx autoindex JSON at `/files/`
 

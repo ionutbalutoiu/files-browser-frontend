@@ -1,230 +1,207 @@
 <script lang="ts">
-  import type { NginxEntry, SortField, SortState, DeleteError, RenameError, SharePublicError } from '../../lib/types';
-  import { deleteFile, getDeletePath, renameFile, sharePublic } from '../../lib/api';
-  import { TOAST_TIMEOUT } from '../../lib/constants';
-  import FileTableHeader from './FileTableHeader.svelte';
-  import FileTableRow from './FileTableRow.svelte';
-  import ActionMenu from './ActionMenu.svelte';
-  import ConfirmDialog from '../shared/ConfirmDialog.svelte';
-  import Toast from '../shared/Toast.svelte';
+  import type {
+    NginxEntry,
+    SortField,
+    SortState,
+    AppError,
+  } from "../../lib/types"
+  import {
+    deleteFile,
+    getDeletePath,
+    renameFile,
+    sharePublic,
+  } from "../../lib/api"
+  import { showToast } from "../../lib/stores/toast.svelte"
+  import { validateRename } from "../../lib/validators"
+  import { MENU_HEIGHT, MENU_PADDING } from "../../lib/constants"
+  import FileTableHeader from "./FileTableHeader.svelte"
+  import FileTableRow from "./FileTableRow.svelte"
+  import ActionMenu from "./ActionMenu.svelte"
+  import ConfirmDialog from "../shared/ConfirmDialog.svelte"
 
   interface Props {
-    entries: NginxEntry[];
-    currentPath: string;
-    sort: SortState;
-    onNavigate: (path: string) => void;
-    onSortChange: (field: SortField) => void;
-    onDelete: () => void;
+    entries: NginxEntry[]
+    currentPath: string
+    sort: SortState
+    onNavigate: (path: string) => void
+    onSortChange: (field: SortField) => void
+    onDelete: () => void
   }
 
-  let { entries, currentPath, sort, onNavigate, onSortChange, onDelete }: Props =
-    $props();
+  let {
+    entries,
+    currentPath,
+    sort,
+    onNavigate,
+    onSortChange,
+    onDelete,
+  }: Props = $props()
 
   // Menu state
-  let openMenu = $state<string | null>(null);
+  let openMenu = $state<string | null>(null)
   let menuPosition = $state<{
-    top: number;
-    left: number;
-    openUpward: boolean;
-  } | null>(null);
+    top: number
+    left: number
+    openUpward: boolean
+  } | null>(null)
 
   // Delete state
-  let deleting = $state<string | null>(null);
-  let deleteError = $state<{ name: string; message: string } | null>(null);
-  let confirmEntry = $state<NginxEntry | null>(null);
+  let deletingEntry = $state<string | null>(null)
+  let deleteError = $state<{ name: string; message: string } | null>(null)
+  let confirmEntry = $state<NginxEntry | null>(null)
 
   // Rename state
-  let renamingEntry = $state<string | null>(null);
-  let renameValue = $state('');
-  let renameError = $state<{ name: string; message: string } | null>(null);
-  let renaming = $state(false);
+  let renamingEntry = $state<string | null>(null)
+  let renameValue = $state("")
+  let renameError = $state<{ name: string; message: string } | null>(null)
+  let isSubmitting = $state(false)
 
   // Share state
-  let sharing = $state<string | null>(null);
-
-  // Toast notification state
-  let toast = $state<{ message: string; type: 'success' | 'error' } | null>(
-    null
-  );
-  let toastTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  function showToast(message: string, type: 'success' | 'error' = 'success') {
-    if (toastTimeout) {
-      clearTimeout(toastTimeout);
-    }
-    toast = { message, type };
-    toastTimeout = setTimeout(() => {
-      toast = null;
-      toastTimeout = null;
-    }, TOAST_TIMEOUT);
-  }
-
-  function dismissToast() {
-    if (toastTimeout) {
-      clearTimeout(toastTimeout);
-      toastTimeout = null;
-    }
-    toast = null;
-  }
+  let sharingEntry = $state<string | null>(null)
 
   // Menu handlers
   function toggleMenu(entryName: string, event: MouseEvent) {
-    event.stopPropagation();
+    event.stopPropagation()
     if (openMenu === entryName) {
-      closeMenu();
+      closeMenu()
     } else {
-      openMenu = entryName;
-      deleteError = null;
-      const trigger = event.currentTarget as HTMLButtonElement;
+      openMenu = entryName
+      deleteError = null
+      const trigger = event.currentTarget as HTMLButtonElement
       if (trigger) {
-        const rect = trigger.getBoundingClientRect();
-        const menuHeight = 132; // 3 items * ~44px
-        const viewportHeight = window.innerHeight;
-        const spaceBelow = viewportHeight - rect.bottom;
-        const openUpward = spaceBelow < menuHeight + 8;
+        const rect = trigger.getBoundingClientRect()
+        const viewportHeight = window.innerHeight
+        const spaceBelow = viewportHeight - rect.bottom
+        const openUpward = spaceBelow < MENU_HEIGHT + MENU_PADDING
 
         menuPosition = {
           top: openUpward ? rect.top : rect.bottom,
           left: rect.right,
           openUpward,
-        };
+        }
       }
     }
   }
 
   function closeMenu() {
-    openMenu = null;
-    menuPosition = null;
+    openMenu = null
+    menuPosition = null
   }
 
   function handleDocumentClick() {
     if (openMenu) {
-      closeMenu();
+      closeMenu()
     }
   }
 
   // Delete handlers
   function requestDelete(entry: NginxEntry) {
-    closeMenu();
-    confirmEntry = entry;
+    closeMenu()
+    confirmEntry = entry
   }
 
   function cancelDelete() {
-    confirmEntry = null;
+    confirmEntry = null
   }
 
   async function confirmDeleteAction() {
-    if (!confirmEntry) return;
+    if (!confirmEntry) return
 
-    const entry = confirmEntry;
-    confirmEntry = null;
-    deleting = entry.name;
-    deleteError = null;
+    const entry = confirmEntry
+    confirmEntry = null
+    deletingEntry = entry.name
+    deleteError = null
 
     try {
-      const path = getDeletePath(currentPath, entry.name);
-      await deleteFile(path);
-      onDelete();
+      const path = getDeletePath(currentPath, entry.name)
+      await deleteFile(path)
+      onDelete()
     } catch (err) {
       deleteError = {
         name: entry.name,
-        message: (err as DeleteError).message,
-      };
+        message: (err as AppError).message,
+      }
     } finally {
-      deleting = null;
+      deletingEntry = null
     }
   }
 
   // Share handler
   async function handleShare(entry: NginxEntry) {
-    closeMenu();
+    closeMenu()
 
-    if (entry.type === 'directory') {
-      return;
+    if (entry.type === "directory") {
+      return
     }
 
-    sharing = entry.name;
+    sharingEntry = entry.name
 
     try {
-      const path = getDeletePath(currentPath, entry.name);
-      const result = await sharePublic(path);
-      showToast(`File shared publicly: ${result.shared}`, 'success');
+      const path = getDeletePath(currentPath, entry.name)
+      const result = await sharePublic(path)
+      showToast(`File shared publicly: ${result.shared}`, "success")
     } catch (err) {
-      const error = err as SharePublicError;
-      showToast(error.message, 'error');
+      const error = err as AppError
+      showToast(error.message, "error")
     } finally {
-      sharing = null;
+      sharingEntry = null
     }
   }
 
   // Rename handlers
   function startRename(entry: NginxEntry) {
-    closeMenu();
-    renameError = null;
-    renamingEntry = entry.name;
-    renameValue = entry.name;
+    closeMenu()
+    renameError = null
+    renamingEntry = entry.name
+    renameValue = entry.name
   }
 
   function cancelRename() {
-    renamingEntry = null;
-    renameValue = '';
-    renameError = null;
-  }
-
-  function validateRename(name: string, originalName: string): string | null {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      return 'Name cannot be empty';
-    }
-    if (trimmed.includes('/') || trimmed.includes('\\')) {
-      return 'Name cannot contain / or \\';
-    }
-    if (trimmed === originalName) {
-      return null; // No change, silently cancel
-    }
-    return ''; // Valid
+    renamingEntry = null
+    renameValue = ""
+    renameError = null
   }
 
   async function confirmRename(originalName: string) {
-    const trimmedName = renameValue.trim();
-    const validationResult = validateRename(trimmedName, originalName);
+    const trimmedName = renameValue.trim()
+    const validationResult = validateRename(trimmedName, originalName)
 
     if (validationResult === null) {
-      cancelRename();
-      return;
+      cancelRename()
+      return
     }
 
     if (validationResult) {
-      renameError = { name: originalName, message: validationResult };
-      return;
+      renameError = { name: originalName, message: validationResult }
+      return
     }
 
-    renaming = true;
+    isSubmitting = true
 
     try {
-      const oldPath = getDeletePath(currentPath, originalName);
-      await renameFile(oldPath, trimmedName);
-      const entryIndex = entries.findIndex((e) => e.name === originalName);
+      const oldPath = getDeletePath(currentPath, originalName)
+      await renameFile(oldPath, trimmedName)
+      const entryIndex = entries.findIndex((e) => e.name === originalName)
       if (entryIndex !== -1) {
-        entries[entryIndex] = { ...entries[entryIndex], name: trimmedName };
-        entries = [...entries];
+        entries[entryIndex] = { ...entries[entryIndex], name: trimmedName }
+        entries = [...entries]
       }
-      renameError = null;
-      renamingEntry = null;
+      renameError = null
+      renamingEntry = null
     } catch (err) {
       renameError = {
         name: originalName,
-        message: (err as RenameError).message,
-      };
+        message: (err as AppError).message,
+      }
     } finally {
-      renaming = false;
+      isSubmitting = false
     }
   }
 
   // Get current entry for menu
   let currentMenuEntry = $derived(
-    openMenu ? entries.find((e) => e.name === openMenu) : null
-  );
+    openMenu ? entries.find((e) => e.name === openMenu) : null,
+  )
 </script>
 
 <svelte:document onclick={handleDocumentClick} />
@@ -243,7 +220,7 @@
             {entry}
             {currentPath}
             isMenuOpen={openMenu === entry.name}
-            isDeleting={deleting === entry.name}
+            isDeleting={deletingEntry === entry.name}
             isRenaming={renamingEntry === entry.name}
             {renameValue}
             renameError={renameError?.name === entry.name
@@ -252,7 +229,7 @@
             deleteError={deleteError?.name === entry.name
               ? deleteError.message
               : null}
-            isSubmitting={renaming}
+            {isSubmitting}
             {onNavigate}
             onMenuToggle={toggleMenu}
             onRenameChange={(value) => (renameValue = value)}
@@ -270,7 +247,7 @@
   <ActionMenu
     entry={currentMenuEntry}
     position={menuPosition}
-    isSharing={sharing === currentMenuEntry.name}
+    isSharing={sharingEntry === currentMenuEntry.name}
     onShare={handleShare}
     onRename={startRename}
     onDelete={requestDelete}
@@ -280,13 +257,13 @@
 <!-- Confirmation Dialog -->
 {#if confirmEntry}
   <ConfirmDialog
-    title={confirmEntry.type === 'directory' ? 'Delete Folder' : 'Delete File'}
+    title={confirmEntry.type === "directory" ? "Delete Folder" : "Delete File"}
     confirmLabel="Delete"
     variant="danger"
     onConfirm={confirmDeleteAction}
     onCancel={cancelDelete}
   >
-    {#if confirmEntry.type === 'directory'}
+    {#if confirmEntry.type === "directory"}
       <p>
         Delete folder <strong>"{confirmEntry.name}"</strong>? It must be empty.
       </p>
@@ -296,11 +273,6 @@
       </p>
     {/if}
   </ConfirmDialog>
-{/if}
-
-<!-- Toast Notification -->
-{#if toast}
-  <Toast message={toast.message} type={toast.type} onDismiss={dismissToast} />
 {/if}
 
 <style>

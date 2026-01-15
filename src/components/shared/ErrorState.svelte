@@ -1,15 +1,15 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import type { Snippet } from "svelte"
 
   interface Props {
-    icon?: string;
-    message: string;
-    detail?: string;
-    onRetry?: () => void;
-    children?: Snippet;
+    icon?: string
+    message: string
+    detail?: string
+    onRetry?: () => void
+    children?: Snippet
   }
 
-  let { icon = '', message, detail = '', onRetry, children }: Props = $props();
+  let { icon = "", message, detail = "", onRetry, children }: Props = $props()
 </script>
 
 <div class="error-state" role="alert">

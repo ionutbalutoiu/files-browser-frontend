@@ -1,77 +1,77 @@
 <script lang="ts">
   interface Props {
-    value: string;
-    placeholder?: string;
-    disabled?: boolean;
-    error?: string | null;
-    ariaLabel?: string;
-    cancelOnBlur?: boolean;
-    onValueChange: (value: string) => void;
-    onConfirm: () => void;
-    onCancel: () => void;
+    value: string
+    placeholder?: string
+    disabled?: boolean
+    error?: string | null
+    ariaLabel?: string
+    cancelOnBlur?: boolean
+    onValueChange: (value: string) => void
+    onConfirm: () => void
+    onCancel: () => void
   }
 
   let {
     value,
-    placeholder = '',
+    placeholder = "",
     disabled = false,
     error = null,
-    ariaLabel = 'Name input',
+    ariaLabel = "Name input",
     cancelOnBlur = false,
     onValueChange,
     onConfirm,
     onCancel,
-  }: Props = $props();
+  }: Props = $props()
 
-  let inputRef = $state<HTMLInputElement | null>(null);
-  let containerRef = $state<HTMLDivElement | null>(null);
+  let inputRef = $state<HTMLInputElement | null>(null)
+  let containerRef = $state<HTMLDivElement | null>(null)
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      event.stopPropagation();
-      onConfirm();
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      onCancel();
-    } else if (event.key === ' ') {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      event.stopPropagation()
+      onConfirm()
+    } else if (event.key === "Escape") {
+      event.preventDefault()
+      event.stopPropagation()
+      onCancel()
+    } else if (event.key === " ") {
       // Allow space character - just stop propagation to prevent parent handlers
-      event.stopPropagation();
+      event.stopPropagation()
     }
   }
 
   function handleInput(event: Event) {
-    const target = event.target as HTMLInputElement;
-    onValueChange(target.value);
+    const target = event.target as HTMLInputElement
+    onValueChange(target.value)
   }
 
   function handleBlur(event: FocusEvent) {
-    if (!cancelOnBlur) return;
+    if (!cancelOnBlur) return
 
-    const relatedTarget = event.relatedTarget as HTMLElement | null;
+    const relatedTarget = event.relatedTarget as HTMLElement | null
     // Don't cancel if focus moves within the component (e.g., to action buttons)
     if (relatedTarget && containerRef?.contains(relatedTarget)) {
-      return;
+      return
     }
     // Delay to allow click events on buttons to fire first
     setTimeout(() => {
       if (!disabled) {
-        onCancel();
+        onCancel()
       }
-    }, 150);
+    }, 150)
   }
 
   export function focus() {
-    inputRef?.focus();
+    inputRef?.focus()
   }
 
   export function select() {
-    inputRef?.select();
+    inputRef?.select()
   }
 
   export function setSelectionRange(start: number, end: number) {
-    inputRef?.setSelectionRange(start, end);
+    inputRef?.setSelectionRange(start, end)
   }
 </script>
 
@@ -98,7 +98,7 @@
         disabled={disabled || !value.trim()}
         aria-label="Confirm"
       >
-        {disabled ? '...' : '✓'}
+        {disabled ? "..." : "✓"}
       </button>
       <button
         type="button"

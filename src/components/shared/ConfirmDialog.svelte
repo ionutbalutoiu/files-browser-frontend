@@ -1,32 +1,32 @@
 <script lang="ts">
   interface Props {
-    title: string;
-    confirmLabel?: string;
-    cancelLabel?: string;
-    variant?: 'danger' | 'default';
-    onConfirm: () => void;
-    onCancel: () => void;
-    children?: import('svelte').Snippet;
+    title: string
+    confirmLabel?: string
+    cancelLabel?: string
+    variant?: "danger" | "default"
+    onConfirm: () => void
+    onCancel: () => void
+    children?: import("svelte").Snippet
   }
 
   let {
     title,
-    confirmLabel = 'Confirm',
-    cancelLabel = 'Cancel',
-    variant = 'default',
+    confirmLabel = "Confirm",
+    cancelLabel = "Cancel",
+    variant = "default",
     onConfirm,
     onCancel,
     children,
-  }: Props = $props();
+  }: Props = $props()
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      onCancel();
+    if (event.key === "Escape") {
+      onCancel()
     }
   }
 
   function handleOverlayClick() {
-    onCancel();
+    onCancel()
   }
 </script>
 
@@ -61,7 +61,7 @@
       <button
         type="button"
         class="dialog-btn confirm"
-        class:danger={variant === 'danger'}
+        class:danger={variant === "danger"}
         onclick={onConfirm}
       >
         {confirmLabel}
@@ -146,7 +146,9 @@
     font-weight: 500;
     border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.15s, border-color 0.15s;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
   }
 
   .dialog-btn:focus-visible {

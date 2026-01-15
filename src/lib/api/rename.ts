@@ -3,47 +3,56 @@
  * Handles renaming files and directories.
  */
 
-import { buildApiUrl } from '../url';
-import { API_ENDPOINTS } from '../constants';
-import type { RenameError } from '../types';
+import { buildApiUrl, stripSlashes } from "../url"
+import { API_ENDPOINTS } from "../constants"
+import { fetchWithTimeout } from "./http"
+import type { AppError } from "../types"
 
 /**
  * Rename a file or directory.
  * @param oldPath - Full path to file or directory (e.g., "/photos/2026/image.jpg")
  * @param newName - New name for the file or directory (just the name, not full path)
  */
-export async function renameFile(oldPath: string, newName: string): Promise<void> {
+export async function renameFile(
+  oldPath: string,
+  newName: string,
+): Promise<void> {
   // Normalize path: remove leading/trailing slashes
-  const normalizedPath = oldPath.replace(/^\/+|\/+$/g, '');
+  const normalizedPath = stripSlashes(oldPath)
 
   // Encode the new name for the query parameter
-  const encodedNewName = encodeURIComponent(newName.trim());
+  const encodedNewName = encodeURIComponent(newName.trim())
 
-  const renameUrl = buildApiUrl(API_ENDPOINTS.RENAME, normalizedPath, true) + `?newName=${encodedNewName}`;
-  const response = await fetch(renameUrl, { method: 'POST' });
+  const renameUrl =
+    buildApiUrl(API_ENDPOINTS.RENAME, normalizedPath, true) +
+    `?newName=${encodedNewName}`
+  const response = await fetchWithTimeout(renameUrl, { method: "POST" })
 
   if (!response.ok) {
-    let errorMessage: string;
+    let errorMessage: string
 
     try {
-      const result = await response.json();
-      errorMessage = result.error || `Rename failed: ${response.status}`;
+      const result = await response.json()
+      errorMessage = result.error || `Rename failed: ${response.status}`
     } catch {
-      errorMessage = `Rename failed: ${response.status}`;
+      errorMessage = `Rename failed: ${response.status}`
     }
 
     // Map status codes to user-friendly messages
     switch (response.status) {
       case 404:
-        throw { message: 'File not found', status: 404 } as RenameError;
+        throw { message: "File not found", status: 404 } as AppError
       case 409:
-        throw { message: 'A file with that name already exists', status: 409 } as RenameError;
+        throw {
+          message: "A file with that name already exists",
+          status: 409,
+        } as AppError
       case 400:
-        throw { message: 'Invalid name', status: 400 } as RenameError;
+        throw { message: "Invalid name", status: 400 } as AppError
       case 403:
-        throw { message: 'Cannot rename this path', status: 403 } as RenameError;
+        throw { message: "Cannot rename this path", status: 403 } as AppError
       default:
-        throw { message: errorMessage, status: response.status } as RenameError;
+        throw { message: errorMessage, status: response.status } as AppError
     }
   }
 }

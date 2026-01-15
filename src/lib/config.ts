@@ -6,7 +6,7 @@
  * Base URL for publicly shared files.
  * This is used to construct the full public URL when copying share links.
  */
-export const PUBLIC_BASE_URL = 'https://files.balutoiu.com';
+export const PUBLIC_BASE_URL = "https://files.balutoiu.com"
 
 /**
  * Get the full public URL for a shared file.
@@ -15,6 +15,6 @@ export const PUBLIC_BASE_URL = 'https://files.balutoiu.com';
  */
 export function getPublicFileUrl(filePath: string): string {
   // Ensure path starts with /
-  const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
-  return `${PUBLIC_BASE_URL}${normalizedPath}`;
+  const normalizedPath = filePath.startsWith("/") ? filePath : `/${filePath}`
+  return `${PUBLIC_BASE_URL}${normalizedPath}`
 }

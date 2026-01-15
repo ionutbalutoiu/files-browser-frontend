@@ -1,26 +1,26 @@
 <script lang="ts">
-  import type { SortField, SortState } from '../../lib/types';
+  import type { SortField, SortState } from "../../lib/types"
 
   interface Props {
-    sort: SortState;
-    onSortChange: (field: SortField) => void;
+    sort: SortState
+    onSortChange: (field: SortField) => void
   }
 
-  let { sort, onSortChange }: Props = $props();
+  let { sort, onSortChange }: Props = $props()
 
   function getSortIndicator(field: SortField): string {
-    if (sort.field !== field) return '';
-    return sort.direction === 'asc' ? ' ↑' : ' ↓';
+    if (sort.field !== field) return ""
+    return sort.direction === "asc" ? " ↑" : " ↓"
   }
 
   function handleClick(field: SortField) {
-    onSortChange(field);
+    onSortChange(field)
   }
 
   function handleKeydown(field: SortField, event: KeyboardEvent) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onSortChange(field);
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      onSortChange(field)
     }
   }
 </script>
@@ -30,50 +30,50 @@
     <th
       scope="col"
       class="col-name sortable"
-      class:sorted={sort.field === 'name'}
-      onclick={() => handleClick('name')}
-      onkeydown={(e) => handleKeydown('name', e)}
+      class:sorted={sort.field === "name"}
+      onclick={() => handleClick("name")}
+      onkeydown={(e) => handleKeydown("name", e)}
       tabindex="0"
       role="columnheader"
-      aria-sort={sort.field === 'name'
-        ? sort.direction === 'asc'
-          ? 'ascending'
-          : 'descending'
-        : 'none'}
+      aria-sort={sort.field === "name"
+        ? sort.direction === "asc"
+          ? "ascending"
+          : "descending"
+        : "none"}
     >
-      Name{getSortIndicator('name')}
+      Name{getSortIndicator("name")}
     </th>
     <th
       scope="col"
       class="col-size sortable"
-      class:sorted={sort.field === 'size'}
-      onclick={() => handleClick('size')}
-      onkeydown={(e) => handleKeydown('size', e)}
+      class:sorted={sort.field === "size"}
+      onclick={() => handleClick("size")}
+      onkeydown={(e) => handleKeydown("size", e)}
       tabindex="0"
       role="columnheader"
-      aria-sort={sort.field === 'size'
-        ? sort.direction === 'asc'
-          ? 'ascending'
-          : 'descending'
-        : 'none'}
+      aria-sort={sort.field === "size"
+        ? sort.direction === "asc"
+          ? "ascending"
+          : "descending"
+        : "none"}
     >
-      Size{getSortIndicator('size')}
+      Size{getSortIndicator("size")}
     </th>
     <th
       scope="col"
       class="col-modified sortable"
-      class:sorted={sort.field === 'mtime'}
-      onclick={() => handleClick('mtime')}
-      onkeydown={(e) => handleKeydown('mtime', e)}
+      class:sorted={sort.field === "mtime"}
+      onclick={() => handleClick("mtime")}
+      onkeydown={(e) => handleKeydown("mtime", e)}
       tabindex="0"
       role="columnheader"
-      aria-sort={sort.field === 'mtime'
-        ? sort.direction === 'asc'
-          ? 'ascending'
-          : 'descending'
-        : 'none'}
+      aria-sort={sort.field === "mtime"
+        ? sort.direction === "asc"
+          ? "ascending"
+          : "descending"
+        : "none"}
     >
-      Modified{getSortIndicator('mtime')}
+      Modified{getSortIndicator("mtime")}
     </th>
     <th scope="col" class="col-actions">
       <span class="visually-hidden">Actions</span>

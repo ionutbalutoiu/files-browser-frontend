@@ -11,46 +11,62 @@
  * Fields are based on nginx autoindex_format json output.
  */
 export interface NginxEntry {
-  name: string;
-  type: 'file' | 'directory';
-  size?: number;   // Only present for files
-  mtime?: string;  // ISO 8601 format datetime
+  name: string
+  type: "file" | "directory"
+  size?: number // Only present for files
+  mtime?: string // ISO 8601 format datetime
 }
 
-export type NginxAutoindexResponse = NginxEntry[];
+export type NginxAutoindexResponse = NginxEntry[]
 
 // =============================================================================
 // Sort & Filter Types
 // =============================================================================
 
-export type SortField = 'name' | 'size' | 'mtime';
-export type SortDirection = 'asc' | 'desc';
+export type SortField = "name" | "size" | "mtime"
+export type SortDirection = "asc" | "desc"
 
 export interface SortState {
-  field: SortField;
-  direction: SortDirection;
+  field: SortField
+  direction: SortDirection
 }
 
 export interface FilterState {
-  search: string;
+  search: string
 }
 
 // =============================================================================
 // Router Types
 // =============================================================================
 
-export type RouteType = 'files' | 'shared';
+export type RouteType = "files" | "shared"
 
 export interface RouteInfo {
-  type: RouteType;
-  path: string;
+  type: RouteType
+  path: string
 }
 
-export type RouteChangeCallback = (path: string) => void;
+export type RouteChangeCallback = (path: string) => void
 
 export interface BreadcrumbSegment {
-  name: string;
-  path: string;
+  name: string
+  path: string
+}
+
+// =============================================================================
+// Common Error Type
+// =============================================================================
+
+/**
+ * Unified error type for all API operations.
+ * Use this instead of operation-specific error types.
+ */
+export interface AppError {
+  message: string
+  status?: number
+  code?: string // machine-readable error code
+  cause?: unknown // original error for debugging
+  notEnabled?: boolean // feature not enabled on server
 }
 
 // =============================================================================
@@ -58,13 +74,8 @@ export interface BreadcrumbSegment {
 // =============================================================================
 
 export interface FetchResult {
-  entries: NginxEntry[];
-  path: string;
-}
-
-export interface FetchError {
-  message: string;
-  status?: number;
+  entries: NginxEntry[]
+  path: string
 }
 
 // =============================================================================
@@ -72,31 +83,9 @@ export interface FetchError {
 // =============================================================================
 
 export interface UploadResult {
-  uploaded: string[];
-  skipped: string[];
-  errors?: string[];
-}
-
-export interface UploadError {
-  message: string;
-}
-
-// =============================================================================
-// Delete Types
-// =============================================================================
-
-export interface DeleteError {
-  message: string;
-  status?: number;
-}
-
-// =============================================================================
-// Rename Types
-// =============================================================================
-
-export interface RenameError {
-  message: string;
-  status?: number;
+  uploaded: string[]
+  skipped: string[]
+  errors?: string[]
 }
 
 // =============================================================================
@@ -104,12 +93,7 @@ export interface RenameError {
 // =============================================================================
 
 export interface CreateDirectoryResult {
-  created: string;
-}
-
-export interface CreateDirectoryError {
-  message: string;
-  status?: number;
+  created: string
 }
 
 // =============================================================================
@@ -117,10 +101,5 @@ export interface CreateDirectoryError {
 // =============================================================================
 
 export interface SharePublicResult {
-  shared: string;
-}
-
-export interface SharePublicError {
-  message: string;
-  status?: number;
+  shared: string
 }

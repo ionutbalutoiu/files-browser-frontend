@@ -1,101 +1,62 @@
 <script lang="ts">
-  import type { SortField, SortState, CreateDirectoryError } from '../lib/types';
-  import { createDirectory } from '../lib/api';
+  import type { SortField, SortState } from "../lib/types"
+  import NewFolderInput from "./NewFolderInput.svelte"
 
   interface Props {
-    search: string;
-    sort: SortState;
-    showUpload: boolean;
-    currentPath: string;
-    onSearchChange: (search: string) => void;
-    onSortChange: (field: SortField) => void;
-    onUploadToggle: () => void;
-    onDirectoryCreated: () => void;
+    search: string
+    sort: SortState
+    showUpload: boolean
+    currentPath: string
+    onSearchChange: (search: string) => void
+    onSortChange: (field: SortField) => void
+    onUploadToggle: () => void
+    onDirectoryCreated: () => void
   }
 
-  let { search, sort, showUpload, currentPath, onSearchChange, onSortChange, onUploadToggle, onDirectoryCreated }: Props = $props();
+  let {
+    search,
+    sort,
+    showUpload,
+    currentPath,
+    onSearchChange,
+    onSortChange,
+    onUploadToggle,
+    onDirectoryCreated,
+  }: Props = $props()
 
-  // New folder state
-  let showNewFolder = $state(false);
-  let newFolderName = $state('');
-  let creating = $state(false);
-  let createError = $state<string | null>(null);
-  let folderInputRef = $state<HTMLInputElement | null>(null);
+  // New folder visibility state
+  let showNewFolder = $state(false)
 
-  function startNewFolder() {
-    showNewFolder = true;
-    newFolderName = '';
-    createError = null;
+  function handleFolderCreated() {
+    showNewFolder = false
+    onDirectoryCreated()
   }
-
-  function cancelNewFolder() {
-    showNewFolder = false;
-    newFolderName = '';
-    createError = null;
-  }
-
-  async function handleCreateFolder() {
-    if (!newFolderName.trim()) {
-      createError = 'Please enter a folder name';
-      return;
-    }
-
-    creating = true;
-    createError = null;
-
-    try {
-      await createDirectory(currentPath, newFolderName.trim());
-      showNewFolder = false;
-      newFolderName = '';
-      onDirectoryCreated();
-    } catch (err) {
-      createError = (err as CreateDirectoryError).message;
-    } finally {
-      creating = false;
-    }
-  }
-
-  function handleFolderKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      handleCreateFolder();
-    } else if (event.key === 'Escape') {
-      cancelNewFolder();
-    }
-  }
-
-  // Focus input when new folder mode activates
-  $effect(() => {
-    if (showNewFolder && folderInputRef) {
-      folderInputRef.focus();
-      folderInputRef.select();
-    }
-  });
 
   function handleSearchInput(event: Event) {
-    const target = event.target as HTMLInputElement;
-    onSearchChange(target.value);
+    const target = event.target as HTMLInputElement
+    onSearchChange(target.value)
   }
 
   function handleClearSearch() {
-    onSearchChange('');
+    onSearchChange("")
   }
 
   function getSortLabel(field: SortField): string {
     const labels: Record<SortField, string> = {
-      name: 'Name',
-      size: 'Size',
-      mtime: 'Modified',
-    };
-    return labels[field];
+      name: "Name",
+      size: "Size",
+      mtime: "Modified",
+    }
+    return labels[field]
   }
 
   function getSortIndicator(field: SortField): string {
-    if (sort.field !== field) return '';
-    return sort.direction === 'asc' ? ' ↑' : ' ↓';
+    if (sort.field !== field) return ""
+    return sort.direction === "asc" ? " ↑" : " ↓"
   }
 
   function isActive(field: SortField): boolean {
-    return sort.field === field;
+    return sort.field === field
   }
 </script>
 
@@ -111,8 +72,8 @@
       class="search-input"
     />
     {#if search}
-      <button 
-        type="button" 
+      <button
+        type="button"
         class="clear-button"
         onclick={handleClearSearch}
         aria-label="Clear search"
@@ -124,7 +85,7 @@
 
   <div class="sort-controls">
     <span class="sort-label">Sort:</span>
-    {#each ['name', 'size', 'mtime'] as field}
+    {#each ["name", "size", "mtime"] as field}
       <button
         type="button"
         class="sort-button"
@@ -139,44 +100,16 @@
 
   <div class="action-buttons">
     {#if showNewFolder}
-      <div class="new-folder-input">
-        <input
-          type="text"
-          bind:value={newFolderName}
-          bind:this={folderInputRef}
-          placeholder="Folder name"
-          disabled={creating}
-          onkeydown={handleFolderKeydown}
-          class="folder-name-input"
-          class:has-error={createError}
-        />
-        <button
-          type="button"
-          class="folder-action-btn confirm"
-          onclick={handleCreateFolder}
-          disabled={creating || !newFolderName.trim()}
-          aria-label="Create folder"
-        >
-          {creating ? '...' : '✓'}
-        </button>
-        <button
-          type="button"
-          class="folder-action-btn cancel"
-          onclick={cancelNewFolder}
-          disabled={creating}
-          aria-label="Cancel"
-        >
-          ✕
-        </button>
-      </div>
-      {#if createError}
-        <span class="create-error" role="alert">{createError}</span>
-      {/if}
+      <NewFolderInput
+        {currentPath}
+        onCreated={handleFolderCreated}
+        onCancel={() => (showNewFolder = false)}
+      />
     {:else}
       <button
         type="button"
         class="new-folder-button"
-        onclick={startNewFolder}
+        onclick={() => (showNewFolder = true)}
       >
         <span class="folder-icon" aria-hidden="true">📁</span>
         <span class="folder-text">New Folder</span>
@@ -191,8 +124,10 @@
       aria-expanded={showUpload}
       aria-controls="upload-panel"
     >
-      <span class="upload-icon" aria-hidden="true">{showUpload ? '✕' : '↑'}</span>
-      <span class="upload-text">{showUpload ? 'Close' : 'Upload'}</span>
+      <span class="upload-icon" aria-hidden="true"
+        >{showUpload ? "✕" : "↑"}</span
+      >
+      <span class="upload-text">{showUpload ? "Close" : "Upload"}</span>
     </button>
   </div>
 </div>
@@ -222,7 +157,9 @@
     border-radius: 6px;
     background: var(--color-input-bg);
     color: var(--color-text);
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
   }
 
   .search-input::placeholder {
@@ -331,82 +268,6 @@
   .folder-icon {
     font-size: 0.9rem;
     line-height: 1;
-  }
-
-  .new-folder-input {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .folder-name-input {
-    padding: 0.4rem 0.5rem;
-    font-size: 0.85rem;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-input-bg);
-    color: var(--color-text);
-    width: 150px;
-    transition: border-color 0.15s;
-  }
-
-  .folder-name-input:focus {
-    outline: none;
-    border-color: var(--color-focus);
-    box-shadow: 0 0 0 3px var(--color-focus-ring);
-  }
-
-  .folder-name-input.has-error {
-    border-color: var(--color-error, #dc3545);
-  }
-
-  .folder-action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    font-size: 0.9rem;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-bg);
-    color: var(--color-text);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .folder-action-btn:hover:not(:disabled) {
-    background: var(--color-hover);
-  }
-
-  .folder-action-btn:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-
-  .folder-action-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .folder-action-btn.confirm {
-    color: var(--color-success, #28a745);
-    border-color: var(--color-success, #28a745);
-  }
-
-  .folder-action-btn.confirm:hover:not(:disabled) {
-    background: rgba(40, 167, 69, 0.1);
-  }
-
-  .folder-action-btn.cancel {
-    color: var(--color-muted);
-  }
-
-  .create-error {
-    font-size: 0.8rem;
-    color: var(--color-error, #dc3545);
-    white-space: nowrap;
   }
 
   .upload-button {
@@ -523,10 +384,6 @@
 
     .folder-text {
       display: none;
-    }
-
-    .folder-name-input {
-      width: 120px;
     }
 
     .upload-text {

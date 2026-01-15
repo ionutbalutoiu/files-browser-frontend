@@ -4,162 +4,174 @@
  * Or import in browser dev tools to verify.
  */
 
-import { normalizePath, joinUrl, buildApiUrl } from './url';
+import { normalizePath, joinUrl, buildApiUrl } from "./url"
 
 interface TestCase {
-  name: string;
-  fn: () => void;
+  name: string
+  fn: () => void
 }
 
 const tests: TestCase[] = [
   // normalizePath tests
   {
-    name: 'normalizePath: collapses double slashes',
+    name: "normalizePath: collapses double slashes",
     fn: () => {
-      assertEqual(normalizePath('/upload//'), '/upload/');
-      assertEqual(normalizePath('/upload///path//'), '/upload/path/');
-    }
+      assertEqual(normalizePath("/upload//"), "/upload/")
+      assertEqual(normalizePath("/upload///path//"), "/upload/path/")
+    },
   },
   {
-    name: 'normalizePath: preserves protocol slashes',
+    name: "normalizePath: preserves protocol slashes",
     fn: () => {
       assertEqual(
-        normalizePath('http://localhost:3000//upload//'),
-        'http://localhost:3000/upload/'
-      );
+        normalizePath("http://localhost:3000//upload//"),
+        "http://localhost:3000/upload/",
+      )
       assertEqual(
-        normalizePath('https://example.com//api//path'),
-        'https://example.com/api/path'
-      );
-    }
+        normalizePath("https://example.com//api//path"),
+        "https://example.com/api/path",
+      )
+    },
   },
   {
-    name: 'normalizePath: preserves query strings',
+    name: "normalizePath: preserves query strings",
     fn: () => {
-      assertEqual(normalizePath('/upload//?a=1'), '/upload/?a=1');
-      assertEqual(normalizePath('/path//?foo=bar&baz=1'), '/path/?foo=bar&baz=1');
-    }
+      assertEqual(normalizePath("/upload//?a=1"), "/upload/?a=1")
+      assertEqual(
+        normalizePath("/path//?foo=bar&baz=1"),
+        "/path/?foo=bar&baz=1",
+      )
+    },
   },
   {
-    name: 'normalizePath: handles empty and simple paths',
+    name: "normalizePath: handles empty and simple paths",
     fn: () => {
-      assertEqual(normalizePath(''), '');
-      assertEqual(normalizePath('/'), '/');
-      assertEqual(normalizePath('/path'), '/path');
-    }
+      assertEqual(normalizePath(""), "")
+      assertEqual(normalizePath("/"), "/")
+      assertEqual(normalizePath("/path"), "/path")
+    },
   },
 
   // joinUrl tests
   {
     name: 'joinUrl: base="/upload/" + "" => "/upload/"',
     fn: () => {
-      assertEqual(joinUrl('/upload/', ''), '/upload/');
-    }
+      assertEqual(joinUrl("/upload/", ""), "/upload/")
+    },
   },
   {
     name: 'joinUrl: "/upload/" + "/" => "/upload/"',
     fn: () => {
-      assertEqual(joinUrl('/upload/', '/'), '/upload/');
-    }
+      assertEqual(joinUrl("/upload/", "/"), "/upload/")
+    },
   },
   {
     name: 'joinUrl: "/upload" + "/" => "/upload/"',
     fn: () => {
-      assertEqual(joinUrl('/upload', '/'), '/upload/');
-    }
+      assertEqual(joinUrl("/upload", "/"), "/upload/")
+    },
   },
   {
     name: 'joinUrl: "http://localhost:3000" + "/upload//" => "http://localhost:3000/upload/"',
     fn: () => {
       assertEqual(
-        joinUrl('http://localhost:3000', '/upload//'),
-        'http://localhost:3000/upload/'
-      );
-    }
+        joinUrl("http://localhost:3000", "/upload//"),
+        "http://localhost:3000/upload/",
+      )
+    },
   },
   {
-    name: 'joinUrl: handles multiple parts',
+    name: "joinUrl: handles multiple parts",
     fn: () => {
-      assertEqual(joinUrl('/api', '/upload/', '/path/'), '/api/upload/path/');
-    }
+      assertEqual(joinUrl("/api", "/upload/", "/path/"), "/api/upload/path/")
+    },
   },
 
   // buildApiUrl tests
   {
     name: 'buildApiUrl: "/upload" + "/" with trailing slash => "/api/upload/"',
     fn: () => {
-      assertEqual(buildApiUrl('/upload', '/', true), '/api/upload/');
-    }
+      assertEqual(buildApiUrl("/upload", "/", true), "/api/upload/")
+    },
   },
   {
     name: 'buildApiUrl: "/upload" + "" with trailing slash => "/api/upload/"',
     fn: () => {
-      assertEqual(buildApiUrl('/upload', '', true), '/api/upload/');
-    }
+      assertEqual(buildApiUrl("/upload", "", true), "/api/upload/")
+    },
   },
   {
     name: 'buildApiUrl: "/upload" + "photos/2026/" => "/api/upload/photos/2026/"',
     fn: () => {
-      assertEqual(buildApiUrl('/upload', 'photos/2026/', true), '/api/upload/photos/2026/');
-    }
+      assertEqual(
+        buildApiUrl("/upload", "photos/2026/", true),
+        "/api/upload/photos/2026/",
+      )
+    },
   },
   {
     name: 'buildApiUrl: "/upload" + "/photos/2026/" => "/api/upload/photos/2026/"',
     fn: () => {
-      assertEqual(buildApiUrl('/upload', '/photos/2026/', true), '/api/upload/photos/2026/');
-    }
+      assertEqual(
+        buildApiUrl("/upload", "/photos/2026/", true),
+        "/api/upload/photos/2026/",
+      )
+    },
   },
   {
     name: 'buildApiUrl: "/delete" + "/path/file.txt" no trailing slash => "/api/delete/path/file.txt"',
     fn: () => {
-      assertEqual(buildApiUrl('/delete', '/path/file.txt', false), '/api/delete/path/file.txt');
-    }
+      assertEqual(
+        buildApiUrl("/delete", "/path/file.txt", false),
+        "/api/delete/path/file.txt",
+      )
+    },
   },
   {
-    name: 'buildApiUrl: prevents double slashes at root',
+    name: "buildApiUrl: prevents double slashes at root",
     fn: () => {
       // This is the main bug case: uploading at root
-      assertEqual(buildApiUrl('/upload', '/', true), '/api/upload/');
-      assertEqual(buildApiUrl('/upload/', '/', true), '/api/upload/');
-      assertEqual(buildApiUrl('/upload/', '//', true), '/api/upload/');
-    }
+      assertEqual(buildApiUrl("/upload", "/", true), "/api/upload/")
+      assertEqual(buildApiUrl("/upload/", "/", true), "/api/upload/")
+      assertEqual(buildApiUrl("/upload/", "//", true), "/api/upload/")
+    },
   },
   {
-    name: 'buildApiUrl: handles paths with multiple leading slashes',
+    name: "buildApiUrl: handles paths with multiple leading slashes",
     fn: () => {
-      assertEqual(buildApiUrl('/upload', '///path/', true), '/api/upload/path/');
-    }
+      assertEqual(buildApiUrl("/upload", "///path/", true), "/api/upload/path/")
+    },
   },
-];
+]
 
 function assertEqual(actual: string, expected: string): void {
   if (actual !== expected) {
-    throw new Error(`Expected "${expected}" but got "${actual}"`);
+    throw new Error(`Expected "${expected}" but got "${actual}"`)
   }
 }
 
 function runTests(): void {
-  let passed = 0;
-  let failed = 0;
+  let passed = 0
+  let failed = 0
 
   for (const test of tests) {
     try {
-      test.fn();
-      console.log(`✓ ${test.name}`);
-      passed++;
+      test.fn()
+      console.log(`✓ ${test.name}`)
+      passed++
     } catch (e) {
-      console.error(`✗ ${test.name}`);
-      console.error(`  ${e instanceof Error ? e.message : e}`);
-      failed++;
+      console.error(`✗ ${test.name}`)
+      console.error(`  ${e instanceof Error ? e.message : e}`)
+      failed++
     }
   }
 
-  console.log(`\n${passed} passed, ${failed} failed`);
-  
+  console.log(`\n${passed} passed, ${failed} failed`)
+
   if (failed > 0) {
-    throw new Error(`${failed} test(s) failed`);
+    throw new Error(`${failed} test(s) failed`)
   }
 }
 
 // Run tests if this file is executed directly
-runTests();
+runTests()

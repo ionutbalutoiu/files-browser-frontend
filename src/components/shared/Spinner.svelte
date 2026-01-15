@@ -1,16 +1,16 @@
 <script lang="ts">
   interface Props {
-    size?: 'small' | 'medium' | 'large';
+    size?: "small" | "medium" | "large"
   }
 
-  let { size = 'medium' }: Props = $props();
+  let { size = "medium" }: Props = $props()
 </script>
 
 <span
   class="spinner"
-  class:small={size === 'small'}
-  class:medium={size === 'medium'}
-  class:large={size === 'large'}
+  class:small={size === "small"}
+  class:medium={size === "medium"}
+  class:large={size === "large"}
   aria-hidden="true"
 ></span>
 
@@ -43,6 +43,8 @@
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

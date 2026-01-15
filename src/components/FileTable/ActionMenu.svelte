@@ -1,22 +1,29 @@
 <script lang="ts">
-  import type { NginxEntry } from '../../lib/types';
+  import type { NginxEntry } from "../../lib/types"
 
   interface MenuPosition {
-    top: number;
-    left: number;
-    openUpward: boolean;
+    top: number
+    left: number
+    openUpward: boolean
   }
 
   interface Props {
-    entry: NginxEntry;
-    position: MenuPosition;
-    isSharing?: boolean;
-    onShare: (entry: NginxEntry) => void;
-    onRename: (entry: NginxEntry) => void;
-    onDelete: (entry: NginxEntry) => void;
+    entry: NginxEntry
+    position: MenuPosition
+    isSharing?: boolean
+    onShare: (entry: NginxEntry) => void
+    onRename: (entry: NginxEntry) => void
+    onDelete: (entry: NginxEntry) => void
   }
 
-  let { entry, position, isSharing = false, onShare, onRename, onDelete }: Props = $props();
+  let {
+    entry,
+    position,
+    isSharing = false,
+    onShare,
+    onRename,
+    onDelete,
+  }: Props = $props()
 </script>
 
 <div
@@ -25,7 +32,7 @@
   role="menu"
   style="top: {position.top}px; left: {position.left}px;"
 >
-  {#if entry.type === 'file'}
+  {#if entry.type === "file"}
     <button
       type="button"
       class="menu-item"

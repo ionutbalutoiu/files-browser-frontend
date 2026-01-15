@@ -1,107 +1,115 @@
 <script lang="ts">
-  import { uploadFilesWithProgress, validateFiles, formatTotalSize, type UploadResult, type UploadError } from '../lib/api';
+  import {
+    uploadFilesWithProgress,
+    validateFiles,
+    formatTotalSize,
+    type UploadResult,
+    type AppError,
+  } from "../lib/api"
 
   interface Props {
-    currentPath: string;
-    onUploadComplete: () => void;
+    currentPath: string
+    onUploadComplete: () => void
   }
 
-  let { currentPath, onUploadComplete }: Props = $props();
+  let { currentPath, onUploadComplete }: Props = $props()
 
   // State
-  let files = $state<File[]>([]);
-  let uploading = $state(false);
-  let progress = $state(0);
-  let dragOver = $state(false);
-  let result = $state<UploadResult | null>(null);
-  let error = $state<string | null>(null);
-  let validationErrors = $state<string[]>([]);
+  let files = $state<File[]>([])
+  let uploading = $state(false)
+  let progress = $state(0)
+  let dragOver = $state(false)
+  let result = $state<UploadResult | null>(null)
+  let error = $state<string | null>(null)
+  let validationErrors = $state<string[]>([])
 
   // Derived
-  let totalSize = $derived(files.length > 0 ? formatTotalSize(files) : '');
-  let canUpload = $derived(files.length > 0 && !uploading && validationErrors.length === 0);
+  let totalSize = $derived(files.length > 0 ? formatTotalSize(files) : "")
+  let canUpload = $derived(
+    files.length > 0 && !uploading && validationErrors.length === 0,
+  )
 
   function handleFileSelect(event: Event) {
-    const input = event.target as HTMLInputElement;
+    const input = event.target as HTMLInputElement
     if (input.files) {
-      setFiles(Array.from(input.files));
+      setFiles(Array.from(input.files))
     }
   }
 
   function handleDrop(event: DragEvent) {
-    event.preventDefault();
-    dragOver = false;
-    
+    event.preventDefault()
+    dragOver = false
+
     if (event.dataTransfer?.files) {
-      setFiles(Array.from(event.dataTransfer.files));
+      setFiles(Array.from(event.dataTransfer.files))
     }
   }
 
   function handleDragOver(event: DragEvent) {
-    event.preventDefault();
-    dragOver = true;
+    event.preventDefault()
+    dragOver = true
   }
 
   function handleDragLeave() {
-    dragOver = false;
+    dragOver = false
   }
 
   function setFiles(newFiles: File[]) {
-    files = newFiles;
-    result = null;
-    error = null;
-    validationErrors = validateFiles(newFiles);
+    files = newFiles
+    result = null
+    error = null
+    validationErrors = validateFiles(newFiles)
   }
 
   function clearFiles() {
-    files = [];
-    result = null;
-    error = null;
-    validationErrors = [];
-    progress = 0;
+    files = []
+    result = null
+    error = null
+    validationErrors = []
+    progress = 0
   }
 
   function removeFile(index: number) {
-    const newFiles = [...files];
-    newFiles.splice(index, 1);
-    setFiles(newFiles);
+    const newFiles = [...files]
+    newFiles.splice(index, 1)
+    setFiles(newFiles)
   }
 
   async function handleUpload() {
-    if (!canUpload) return;
+    if (!canUpload) return
 
-    uploading = true;
-    progress = 0;
-    error = null;
-    result = null;
+    uploading = true
+    progress = 0
+    error = null
+    result = null
 
     try {
       result = await uploadFilesWithProgress(files, currentPath, (p) => {
-        progress = p;
-      });
-      
-      files = [];
-      validationErrors = [];
-      
+        progress = p
+      })
+
+      files = []
+      validationErrors = []
+
       // Refresh the file list
-      onUploadComplete();
+      onUploadComplete()
     } catch (err) {
-      error = (err as UploadError).message;
+      error = (err as AppError).message
     } finally {
-      uploading = false;
+      uploading = false
     }
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      (event.target as HTMLElement).querySelector('input')?.click();
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      ;(event.target as HTMLElement).querySelector("input")?.click()
     }
   }
 </script>
 
 <div class="upload-panel">
-  <div 
+  <div
     class="drop-zone"
     class:drag-over={dragOver}
     class:has-files={files.length > 0}
@@ -122,17 +130,17 @@
       aria-hidden="true"
       tabindex="-1"
     />
-    
+
     {#if files.length === 0}
       <div class="drop-prompt">
         <span class="drop-icon" aria-hidden="true">📤</span>
         <p class="drop-text">Drop files here or click to select</p>
-        <p class="drop-hint">Upload to: {currentPath || '/'}</p>
+        <p class="drop-hint">Upload to: {currentPath || "/"}</p>
       </div>
     {:else}
       <div class="file-list">
         <p class="file-summary">
-          {files.length} file{files.length !== 1 ? 's' : ''} selected ({totalSize})
+          {files.length} file{files.length !== 1 ? "s" : ""} selected ({totalSize})
         </p>
         <ul>
           {#each files as file, index (file.name + index)}
@@ -186,7 +194,7 @@
       onclick={handleUpload}
       disabled={!canUpload}
     >
-      {uploading ? 'Uploading...' : 'Upload'}
+      {uploading ? "Uploading..." : "Upload"}
     </button>
   </div>
 
@@ -199,13 +207,15 @@
   {#if result}
     <div class="upload-result" role="status">
       {#if result.uploaded.length > 0}
-        <p class="success">✓ Uploaded: {result.uploaded.join(', ')}</p>
+        <p class="success">✓ Uploaded: {result.uploaded.join(", ")}</p>
       {/if}
       {#if result.skipped.length > 0}
-        <p class="warning">⚠ Skipped (already exist): {result.skipped.join(', ')}</p>
+        <p class="warning">
+          ⚠ Skipped (already exist): {result.skipped.join(", ")}
+        </p>
       {/if}
       {#if result.errors && result.errors.length > 0}
-        <p class="error-text">✗ Errors: {result.errors.join(', ')}</p>
+        <p class="error-text">✗ Errors: {result.errors.join(", ")}</p>
       {/if}
     </div>
   {/if}

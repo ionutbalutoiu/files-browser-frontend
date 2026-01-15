@@ -39,14 +39,14 @@ server {
     # Serve directory listings under /files/
     location /files/ {
         alias /path/to/your/files/;
-        
+
         # Enable autoindex with JSON format
         autoindex on;
         autoindex_format json;
-        
+
         # Ensure proper content type for JSON responses
         default_type application/json;
-        
+
         # Optional: Add CORS headers if needed
         add_header Access-Control-Allow-Origin *;
     }
@@ -60,7 +60,7 @@ server {
 
 ### Directory Structure Example
 
-```
+```shell
 /var/www/
 ├── files-browser/
 │   └── dist/           # Built SPA assets
@@ -86,13 +86,13 @@ server {
     # SPA static assets
     location /ui/ {
         alias /var/www/files-browser/dist/;
-        
+
         # Cache static assets
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
             expires 1y;
             add_header Cache-Control "public, immutable";
         }
-        
+
         # SPA fallback
         try_files $uri $uri/ /ui/index.html;
     }
@@ -100,13 +100,13 @@ server {
     # File directory listings (JSON)
     location /files/ {
         alias /var/www/shared-files/;
-        
+
         autoindex on;
         autoindex_format json;
-        
+
         # Charset for filenames with special characters
         charset utf-8;
-        
+
         # Security headers
         add_header X-Content-Type-Options nosniff;
     }
@@ -135,10 +135,10 @@ The application uses **hash-based routing** (`#/path/to/dir/`), so:
 
 ### URL Mapping
 
-| Browser URL | Fetches |
-|-------------|---------|
-| `/ui/#/` | `/files/` |
-| `/ui/#/photos/` | `/files/photos/` |
+| Browser URL        | Fetches             |
+| ------------------ | ------------------- |
+| `/ui/#/`           | `/files/`           |
+| `/ui/#/photos/`    | `/files/photos/`    |
 | `/ui/#/docs/2026/` | `/files/docs/2026/` |
 
 ### Nginx Autoindex JSON Format
@@ -148,11 +148,17 @@ Nginx returns entries like:
 ```json
 [
   { "name": "documents", "type": "directory", "mtime": "2026-01-10T15:30:00Z" },
-  { "name": "photo.jpg", "type": "file", "mtime": "2026-01-09T10:20:00Z", "size": 1048576 }
+  {
+    "name": "photo.jpg",
+    "type": "file",
+    "mtime": "2026-01-09T10:20:00Z",
+    "size": 1048576
+  }
 ]
 ```
 
 The app handles:
+
 - Missing optional fields (`size`, `mtime`)
 - Extra fields (ignored gracefully)
 - Invalid JSON (shows error state)
@@ -178,13 +184,13 @@ export default defineConfig({
   // ...existing config...
   server: {
     proxy: {
-      '/files': {
-        target: 'http://localhost:8080',
+      "/files": {
+        target: "http://localhost:8080",
         changeOrigin: true,
       },
     },
   },
-});
+})
 ```
 
 ## Troubleshooting

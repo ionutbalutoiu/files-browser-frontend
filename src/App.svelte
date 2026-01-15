@@ -1,104 +1,122 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { initRouter, onRouteChange, navigateTo, getCurrentPath, isSharedRoute, navigateToShared } from './lib/router';
-  import { fetchDirectory } from './lib/api';
-  import { processEntries, toggleSort, DEFAULT_SORT, DEFAULT_FILTER } from './lib/sortFilter';
-  import type { NginxEntry, SortState, SortField, FilterState, FetchError } from './lib/types';
-  
-  import Breadcrumbs from './components/Breadcrumbs.svelte';
-  import Toolbar from './components/Toolbar.svelte';
-  import { FileTable } from './components/FileTable';
-  import UploadPanel from './components/UploadPanel.svelte';
-  import SharedFilesView from './components/SharedFilesView.svelte';
-  import { LoadingState, ErrorState } from './components/shared';
+  import { onMount } from "svelte"
+  import {
+    initRouter,
+    onRouteChange,
+    navigateTo,
+    getCurrentPath,
+    isSharedRoute,
+    navigateToShared,
+  } from "./lib/router"
+  import { fetchDirectory } from "./lib/api"
+  import {
+    processEntries,
+    toggleSort,
+    DEFAULT_SORT,
+    DEFAULT_FILTER,
+  } from "./lib/sortFilter"
+  import type {
+    NginxEntry,
+    SortState,
+    SortField,
+    FilterState,
+    AppError,
+  } from "./lib/types"
+
+  import Breadcrumbs from "./components/Breadcrumbs.svelte"
+  import Toolbar from "./components/Toolbar.svelte"
+  import { FileTable } from "./components/FileTable"
+  import UploadPanel from "./components/UploadPanel.svelte"
+  import SharedFilesView from "./components/SharedFilesView.svelte"
+  import { LoadingState, ErrorState, ToastContainer } from "./components/shared"
 
   // State
-  let currentPath = $state('/');
-  let entries = $state<NginxEntry[]>([]);
-  let loading = $state(true);
-  let error = $state<FetchError | null>(null);
-  
+  let currentPath = $state("/")
+  let entries = $state<NginxEntry[]>([])
+  let loading = $state(true)
+  let error = $state<AppError | null>(null)
+
   // View state: 'files' or 'shared'
-  let currentView = $state<'files' | 'shared'>('files');
-  
+  let currentView = $state<"files" | "shared">("files")
+
   // Sort and filter state (preserved across navigation)
-  let sort = $state<SortState>({ ...DEFAULT_SORT });
-  let filter = $state<FilterState>({ ...DEFAULT_FILTER });
-  
+  let sort = $state<SortState>({ ...DEFAULT_SORT })
+  let filter = $state<FilterState>({ ...DEFAULT_FILTER })
+
   // Upload panel visibility
-  let showUpload = $state(false);
+  let showUpload = $state(false)
 
   // Derived: processed entries with filter and sort applied
-  let processedEntries = $derived(processEntries(entries, filter, sort));
+  let processedEntries = $derived(processEntries(entries, filter, sort))
 
   // Fetch directory contents
   async function loadDirectory(path: string) {
-    loading = true;
-    error = null;
-    entries = [];
+    loading = true
+    error = null
+    entries = []
 
     try {
-      const result = await fetchDirectory(path);
-      entries = result.entries;
-      currentPath = result.path;
+      const result = await fetchDirectory(path)
+      entries = result.entries
+      currentPath = result.path
     } catch (e) {
-      error = e as FetchError;
+      error = e as AppError
     } finally {
-      loading = false;
+      loading = false
     }
   }
 
   // Navigation handler
   function handleNavigate(path: string) {
-    navigateTo(path);
+    navigateTo(path)
   }
 
   // Sort change handler
   function handleSortChange(field: SortField) {
-    sort = toggleSort(sort, field);
+    sort = toggleSort(sort, field)
   }
 
   // Search change handler
   function handleSearchChange(search: string) {
-    filter = { search };
+    filter = { search }
   }
 
   // Toggle upload panel
   function toggleUpload() {
-    showUpload = !showUpload;
+    showUpload = !showUpload
   }
 
   // Refresh after upload
   function handleUploadComplete() {
-    loadDirectory(currentPath);
+    loadDirectory(currentPath)
   }
 
   // Initialize on mount
   onMount(() => {
-    const initialPath = initRouter();
-    
+    const initialPath = initRouter()
+
     // Check initial route type
     if (isSharedRoute()) {
-      currentView = 'shared';
-      loading = false;
+      currentView = "shared"
+      loading = false
     } else {
-      currentView = 'files';
-      loadDirectory(initialPath);
+      currentView = "files"
+      loadDirectory(initialPath)
     }
 
     // Subscribe to route changes
     const cleanup = onRouteChange((newPath) => {
       if (isSharedRoute()) {
-        currentView = 'shared';
-        loading = false;
-      } else if (newPath !== currentPath || currentView !== 'files') {
-        currentView = 'files';
-        loadDirectory(newPath);
+        currentView = "shared"
+        loading = false
+      } else if (newPath !== currentPath || currentView !== "files") {
+        currentView = "files"
+        loadDirectory(newPath)
       }
-    });
+    })
 
-    return cleanup;
-  });
+    return cleanup
+  })
 </script>
 
 <div class="app">
@@ -106,19 +124,19 @@
     <div class="header-top">
       <h1 class="title">📂 Files Browser</h1>
       <nav class="nav-links">
-        <button 
-          type="button" 
+        <button
+          type="button"
           class="nav-link"
-          class:active={currentView === 'files'}
-          onclick={() => navigateTo('/')}
+          class:active={currentView === "files"}
+          onclick={() => navigateTo("/")}
         >
           <span class="nav-icon" aria-hidden="true">📁</span>
           <span class="nav-text">Browse</span>
         </button>
-        <button 
-          type="button" 
+        <button
+          type="button"
           class="nav-link"
-          class:active={currentView === 'shared'}
+          class:active={currentView === "shared"}
           onclick={navigateToShared}
         >
           <span class="nav-icon" aria-hidden="true">🔗</span>
@@ -126,66 +144,68 @@
         </button>
       </nav>
     </div>
-    {#if currentView === 'files'}
+    {#if currentView === "files"}
       <Breadcrumbs path={currentPath} onNavigate={handleNavigate} />
     {/if}
   </header>
 
   <main class="main">
-    {#if currentView === 'shared'}
+    {#if currentView === "shared"}
       <SharedFilesView />
     {:else}
-      <Toolbar 
-      search={filter.search}
-      {sort}
-      {showUpload}
-      {currentPath}
-      onSearchChange={handleSearchChange}
-      onSortChange={handleSortChange}
-      onUploadToggle={toggleUpload}
-      onDirectoryCreated={() => loadDirectory(currentPath)}
-    />
-
-    {#if showUpload}
-      <div id="upload-panel">
-        <UploadPanel 
-          {currentPath} 
-          onUploadComplete={handleUploadComplete} 
-        />
-      </div>
-    {/if}
-
-    {#if loading}
-      <LoadingState message="Loading directory..." />
-    {:else if error}
-      <ErrorState
-        icon="⚠️"
-        message={error.message}
-        detail={error.status ? `HTTP ${error.status}` : ''}
-        onRetry={() => loadDirectory(currentPath)}
-      />
-    {:else}
-      <FileTable 
-        entries={processedEntries}
-        {currentPath}
+      <Toolbar
+        search={filter.search}
         {sort}
-        onNavigate={handleNavigate}
+        {showUpload}
+        {currentPath}
+        onSearchChange={handleSearchChange}
         onSortChange={handleSortChange}
-        onDelete={() => loadDirectory(currentPath)}
+        onUploadToggle={toggleUpload}
+        onDirectoryCreated={() => loadDirectory(currentPath)}
       />
-      
-      <footer class="footer">
-        <p class="count">
-          {processedEntries.length} item{processedEntries.length !== 1 ? 's' : ''}
-          {#if filter.search && processedEntries.length !== entries.length}
-            <span class="filtered">(filtered from {entries.length})</span>
-          {/if}
-        </p>
-      </footer>
-    {/if}
+
+      {#if showUpload}
+        <div id="upload-panel">
+          <UploadPanel {currentPath} onUploadComplete={handleUploadComplete} />
+        </div>
+      {/if}
+
+      {#if loading}
+        <LoadingState message="Loading directory..." />
+      {:else if error}
+        <ErrorState
+          icon="⚠️"
+          message={error.message}
+          detail={error.status ? `HTTP ${error.status}` : ""}
+          onRetry={() => loadDirectory(currentPath)}
+        />
+      {:else}
+        <FileTable
+          entries={processedEntries}
+          {currentPath}
+          {sort}
+          onNavigate={handleNavigate}
+          onSortChange={handleSortChange}
+          onDelete={() => loadDirectory(currentPath)}
+        />
+
+        <footer class="footer">
+          <p class="count">
+            {processedEntries.length} item{processedEntries.length !== 1
+              ? "s"
+              : ""}
+            {#if filter.search && processedEntries.length !== entries.length}
+              <span class="filtered">(filtered from {entries.length})</span>
+            {/if}
+          </p>
+        </footer>
+      {/if}
     {/if}
   </main>
 </div>
+
+<!-- Global toast notifications -->
+<ToastContainer />
 
 <style>
   .app {

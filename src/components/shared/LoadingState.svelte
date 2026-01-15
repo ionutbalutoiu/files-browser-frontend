@@ -1,11 +1,11 @@
 <script lang="ts">
-  import Spinner from './Spinner.svelte';
+  import Spinner from "./Spinner.svelte"
 
   interface Props {
-    message?: string;
+    message?: string
   }
 
-  let { message = 'Loading...' }: Props = $props();
+  let { message = "Loading..." }: Props = $props()
 </script>
 
 <div class="loading-state">

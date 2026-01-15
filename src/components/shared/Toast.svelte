@@ -1,22 +1,22 @@
 <script lang="ts">
   interface Props {
-    message: string;
-    type: 'success' | 'error';
-    onDismiss: () => void;
+    message: string
+    type: "success" | "error"
+    onDismiss: () => void
   }
 
-  let { message, type, onDismiss }: Props = $props();
+  let { message, type, onDismiss }: Props = $props()
 </script>
 
 <div
   class="toast"
-  class:toast-success={type === 'success'}
-  class:toast-error={type === 'error'}
+  class:toast-success={type === "success"}
+  class:toast-error={type === "error"}
   role="alert"
   aria-live="polite"
 >
   <span class="toast-icon" aria-hidden="true">
-    {type === 'success' ? '✓' : '⚠️'}
+    {type === "success" ? "✓" : "⚠️"}
   </span>
   <span class="toast-message">{message}</span>
   <button
@@ -96,7 +96,9 @@
     opacity: 0.7;
     cursor: pointer;
     font-size: 0.9rem;
-    transition: opacity 0.15s, background-color 0.15s;
+    transition:
+      opacity 0.15s,
+      background-color 0.15s;
   }
 
   .toast-dismiss:hover {

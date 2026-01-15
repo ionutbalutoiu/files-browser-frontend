@@ -7,6 +7,7 @@ You are an expert in Svelte (SvelteKit when applicable), TypeScript, modern fron
 You produce clean, maintainable, well-structured code that follows Svelte best practices.
 
 ## Key Principles
+
 - Write concise, technical responses with accurate TypeScript + Svelte examples.
 - Use Svelte’s reactivity idioms (derived values, `$:`) thoughtfully; keep logic readable.
 - Prefer composition and modularization over duplication.
@@ -16,6 +17,7 @@ You produce clean, maintainable, well-structured code that follows Svelte best p
 - Favor progressive enhancement and accessibility by default.
 
 ## Language and Formatting
+
 - Use TypeScript everywhere (`"strict": true`).
 - Avoid enums; use `as const` objects/records instead.
 - Prefer `function` for pure utilities. In Svelte files, use `function` for helpers where reasonable.
@@ -26,6 +28,7 @@ You produce clean, maintainable, well-structured code that follows Svelte best p
 - For single-line conditionals, omit braces when it improves readability.
 
 ## Svelte Reactivity Rules
+
 - Treat `$:` as a tool, not a default.
   - Use `$:` for clear derived values and side-effect-free computations.
   - Avoid complex multi-branch `$:` blocks; extract into functions/modules.
@@ -37,6 +40,7 @@ You produce clean, maintainable, well-structured code that follows Svelte best p
   - Use `$: derived = ...` for local-only derived state.
 
 ## Component Design
+
 - Keep components small and focused. Split:
   - **UI primitives** (buttons, inputs)
   - **Composed UI** (cards, dialogs)
@@ -48,6 +52,7 @@ You produce clean, maintainable, well-structured code that follows Svelte best p
   - Extract domain logic into `services/` or feature modules.
 
 ### File structure inside a `.svelte` component (top to bottom)
+
 1. `script` block:
    - imports
    - props (`export let ...`)
@@ -58,9 +63,11 @@ You produce clean, maintainable, well-structured code that follows Svelte best p
 3. styles (if any; prefer utility classes / global design tokens)
 
 ## Project Structure
+
 Use lowercase with dashes for directories (e.g., `components/auth-wizard`).
 
 Recommended structure (SvelteKit-friendly):
+
 - `src/routes/` (routing; keep route files thin)
 - `src/lib/components/` (shared UI)
 - `src/lib/features/<feature-name>/`
@@ -77,6 +84,7 @@ Recommended structure (SvelteKit-friendly):
 Route files should orchestrate composition, not implement business logic.
 
 ## State Management and Stores
+
 - Use stores for shared state:
   - `writable` for mutable shared state
   - `derived` for computed shared state
@@ -88,13 +96,16 @@ Route files should orchestrate composition, not implement business logic.
   - Use context (`setContext/getContext`) only for truly “tree-scoped” concerns (e.g., form context, theming).
 
 ### Store conventions
+
 - Store modules export:
   - the store(s)
   - helper functions to update state
 - Do not embed UI concerns (DOM, toasts) inside stores.
 
 ## Data Fetching
+
 ### SvelteKit (if used)
+
 - Prefer `load` functions for route-level data and SSR where appropriate.
 - Keep `load` focused:
   - validate inputs (params/search)
@@ -104,6 +115,7 @@ Route files should orchestrate composition, not implement business logic.
 - For client-only data, use browser checks and `onMount` sparingly.
 
 ### Client-side fetching (framework-agnostic)
+
 - Centralize HTTP in `services/`:
   - `services/http/` for fetch wrapper, base URL, headers, auth, interceptors
   - `services/<domain>/` for domain calls (e.g., `services/user/get-user.ts`)
@@ -116,10 +128,12 @@ Route files should orchestrate composition, not implement business logic.
   - return an object (data + meta when needed)
 
 #### Example service style (conceptual)
+
 - `getUser({ userId }): Promise<{ user: User }>`
 - `listPosts({ page, pageSize }): Promise<{ posts: Post[]; total: number }>`
 
 ## Validation and Schemas
+
 - Use Zod (or equivalent) for runtime validation at boundaries:
   - form input
   - untrusted external data (API responses when necessary)
@@ -127,6 +141,7 @@ Route files should orchestrate composition, not implement business logic.
 - Treat types + schemas as the contract.
 
 ## Error Handling
+
 - Use guard clauses at the beginning of functions.
 - Normalize errors into a consistent `AppError` shape:
   - `message` (user-facing)
@@ -140,6 +155,7 @@ Route files should orchestrate composition, not implement business logic.
   - Catch only at boundaries (routes, top-level actions) when needed
 
 ## Forms
+
 - Prefer controlled inputs only when necessary.
 - For complex forms:
   - keep input components presentational
@@ -150,6 +166,7 @@ Route files should orchestrate composition, not implement business logic.
   - maintain accessible labels, descriptions, and error associations
 
 ## Styling
+
 - Prefer a consistent system:
   - design tokens (CSS variables) + utility classes (Tailwind if used)
   - or component-scoped styles when needed
@@ -158,6 +175,7 @@ Route files should orchestrate composition, not implement business logic.
 - Prefer responsive, mobile-first layouts.
 
 ## Accessibility (Required)
+
 - Always provide:
   - semantic elements (`button`, `nav`, `main`, `label`, etc.)
   - keyboard support for interactive UI
@@ -168,6 +186,7 @@ Route files should orchestrate composition, not implement business logic.
   - informative: accessible name via text or `aria-label`
 
 ## Performance
+
 - Avoid unnecessary reactive work:
   - keep `$:` blocks small and deterministic
   - don’t allocate new arrays/objects in hot reactive paths unless needed
@@ -179,6 +198,7 @@ Route files should orchestrate composition, not implement business logic.
   - lazy load when offscreen
 
 ## Testing and Maintainability
+
 - Prefer unit tests for:
   - pure utilities
   - schema validation
@@ -187,7 +207,14 @@ Route files should orchestrate composition, not implement business logic.
   - feature flows (load → render → actions)
 - Avoid snapshot-only testing; assert behavior and accessible output.
 
+## Code Formatting
+
+- **Always run `npm run format` (prettier) at the end of every patch** before committing or presenting changes.
+- This ensures consistent formatting across the codebase.
+- Do not skip this step, even for small changes.
+
 ## Key Conventions
+
 1. TypeScript strict everywhere; avoid enums (use `as const` maps).
 2. Route files stay thin; business logic lives in `features/` and `services/`.
 3. Centralize network calls in `services/` with typed results and consistent errors.
@@ -195,3 +222,4 @@ Route files should orchestrate composition, not implement business logic.
 5. Prefer composition + slots; avoid config-prop bloat.
 6. Keep reactivity clear: derived values yes; side effects no; `onMount` sparingly.
 7. Omit semicolons; use guard clauses and readable control flow.
+8. Run prettier (`npm run format`) at the end of every patch.
