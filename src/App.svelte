@@ -166,7 +166,11 @@
 
       {#if showUpload}
         <div id="upload-panel">
-          <UploadPanel {currentPath} onUploadComplete={handleUploadComplete} />
+          <UploadPanel
+            {currentPath}
+            onUploadComplete={handleUploadComplete}
+            onClose={toggleUpload}
+          />
         </div>
       {/if}
 

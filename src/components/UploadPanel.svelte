@@ -10,9 +10,10 @@
   interface Props {
     currentPath: string
     onUploadComplete: () => void
+    onClose: () => void
   }
 
-  let { currentPath, onUploadComplete }: Props = $props()
+  let { currentPath, onUploadComplete, onClose }: Props = $props()
 
   // State
   let files = $state<File[]>([])
@@ -100,13 +101,32 @@
     }
   }
 
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === "Enter" || event.key === " ") {
+  function handleDropZoneKeydown(event: KeyboardEvent) {
+    if (event.key === " ") {
       event.preventDefault()
       ;(event.target as HTMLElement).querySelector("input")?.click()
+    } else if (event.key === "Enter" && canUpload) {
+      event.preventDefault()
+      handleUpload()
+    }
+  }
+
+  function handleGlobalKeydown(event: KeyboardEvent) {
+    // Skip if user is typing in an input field
+    const target = event.target as HTMLElement
+    if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return
+
+    if (event.key === "Escape") {
+      event.preventDefault()
+      onClose()
+    } else if (event.key === "Enter" && canUpload) {
+      event.preventDefault()
+      handleUpload()
     }
   }
 </script>
+
+<svelte:window onkeydown={handleGlobalKeydown} />
 
 <div class="upload-panel">
   <div
@@ -116,7 +136,7 @@
     ondrop={handleDrop}
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
-    onkeydown={handleKeydown}
+    onkeydown={handleDropZoneKeydown}
     tabindex="0"
     role="button"
     aria-label="Drop files here or click to select"
