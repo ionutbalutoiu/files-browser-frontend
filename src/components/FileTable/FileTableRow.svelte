@@ -2,6 +2,7 @@
   import type { NginxEntry } from '../../lib/types';
   import { formatSize, formatDate } from '../../lib/format';
   import { getFileUrl, getDirectoryUrl } from '../../lib/api';
+  import InlineNameInput from '../shared/InlineNameInput.svelte';
 
   interface Props {
     entry: NginxEntry;
@@ -37,7 +38,7 @@
     onRenameCancel,
   }: Props = $props();
 
-  let renameInputRef = $state<HTMLInputElement | null>(null);
+  let renameInputRef: ReturnType<typeof InlineNameInput> | null = $state(null);
 
   function getIcon(type: 'file' | 'directory'): string {
     return type === 'directory' ? '📁' : '📄';
@@ -50,6 +51,9 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    // Don't handle navigation keys when renaming
+    if (isRenaming) return;
+
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       if (entry.type === 'directory') {
@@ -65,28 +69,6 @@
     if (event.key === 'Escape') {
       onMenuToggle(entry.name, event as unknown as MouseEvent);
     }
-  }
-
-  function handleRenameKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      onRenameConfirm();
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      onRenameCancel();
-    }
-  }
-
-  function handleRenameBlur(event: FocusEvent) {
-    const relatedTarget = event.relatedTarget as HTMLElement | null;
-    if (relatedTarget?.closest('.rename-actions')) {
-      return;
-    }
-    setTimeout(() => {
-      if (isRenaming && !isSubmitting) {
-        onRenameCancel();
-      }
-    }, 150);
   }
 
   // Focus input when rename mode activates
@@ -117,45 +99,17 @@
   <td class="col-name">
     <span class="icon" aria-hidden="true">{getIcon(entry.type)}</span>
     {#if isRenaming}
-      <div class="rename-container">
-        <div class="rename-input-row">
-          <input
-            type="text"
-            class="rename-input"
-            class:has-error={renameError !== null}
-            value={renameValue}
-            oninput={(e) => onRenameChange(e.currentTarget.value)}
-            bind:this={renameInputRef}
-            disabled={isSubmitting}
-            onkeydown={handleRenameKeydown}
-            onblur={handleRenameBlur}
-            aria-label="New name for {entry.name}"
-          />
-          <div class="rename-actions">
-            <button
-              type="button"
-              class="rename-action-btn confirm"
-              onclick={onRenameConfirm}
-              disabled={isSubmitting || !renameValue.trim()}
-              aria-label="Confirm rename"
-            >
-              {isSubmitting ? '...' : '✓'}
-            </button>
-            <button
-              type="button"
-              class="rename-action-btn cancel"
-              onclick={onRenameCancel}
-              disabled={isSubmitting}
-              aria-label="Cancel rename"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        {#if renameError}
-          <span class="rename-error" role="alert">{renameError}</span>
-        {/if}
-      </div>
+      <InlineNameInput
+        bind:this={renameInputRef}
+        value={renameValue}
+        disabled={isSubmitting}
+        error={renameError}
+        ariaLabel="New name for {entry.name}"
+        cancelOnBlur={true}
+        onValueChange={onRenameChange}
+        onConfirm={onRenameConfirm}
+        onCancel={onRenameCancel}
+      />
     {:else if entry.type === 'directory'}
       <a
         href="#{getDirectoryUrl(currentPath, entry.name)}"
@@ -272,100 +226,6 @@
     color: var(--color-error, #dc3545);
     margin-top: 0.25rem;
     padding-left: 1.6rem;
-  }
-
-  .rename-container {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .rename-input-row {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .rename-input {
-    flex: 1;
-    padding: 0.25rem 0.5rem;
-    font-size: inherit;
-    font-family: inherit;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    background: var(--color-bg);
-    color: var(--color-text);
-    outline: none;
-    min-width: 100px;
-  }
-
-  .rename-input:focus {
-    border-color: var(--color-focus);
-    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
-  }
-
-  .rename-input.has-error {
-    border-color: var(--color-error, #dc3545);
-  }
-
-  .rename-input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .rename-actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  .rename-action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    font-size: 0.85rem;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    background: var(--color-bg);
-    color: var(--color-text);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .rename-action-btn:hover:not(:disabled) {
-    background: var(--color-hover);
-  }
-
-  .rename-action-btn:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-
-  .rename-action-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .rename-action-btn.confirm {
-    color: var(--color-success, #28a745);
-    border-color: var(--color-success, #28a745);
-  }
-
-  .rename-action-btn.confirm:hover:not(:disabled) {
-    background: rgba(40, 167, 69, 0.1);
-  }
-
-  .rename-action-btn.cancel {
-    color: var(--color-muted);
-  }
-
-  .rename-error {
-    font-size: 0.75rem;
-    color: var(--color-error, #dc3545);
-    margin-top: 0.2rem;
   }
 
   .col-size {

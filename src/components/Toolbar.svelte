@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { SortField, SortState, CreateDirectoryError } from '../lib/types';
   import { createDirectory } from '../lib/api';
+  import InlineNameInput from './shared/InlineNameInput.svelte';
 
   interface Props {
     search: string;
@@ -20,6 +21,7 @@
   let newFolderName = $state('');
   let creating = $state(false);
   let createError = $state<string | null>(null);
+  let folderInputRef: ReturnType<typeof InlineNameInput> | null = $state(null);
 
   function startNewFolder() {
     showNewFolder = true;
@@ -54,13 +56,13 @@
     }
   }
 
-  function handleFolderKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      handleCreateFolder();
-    } else if (event.key === 'Escape') {
-      cancelNewFolder();
+  // Focus input when new folder mode activates
+  $effect(() => {
+    if (showNewFolder && folderInputRef) {
+      folderInputRef.focus();
+      folderInputRef.select();
     }
-  }
+  });
 
   function handleSearchInput(event: Event) {
     const target = event.target as HTMLInputElement;
@@ -131,37 +133,18 @@
   <div class="action-buttons">
     {#if showNewFolder}
       <div class="new-folder-input">
-        <input
-          type="text"
-          bind:value={newFolderName}
+        <InlineNameInput
+          bind:this={folderInputRef}
+          value={newFolderName}
           placeholder="Folder name"
           disabled={creating}
-          onkeydown={handleFolderKeydown}
-          class="folder-name-input"
-          class:has-error={createError}
+          error={createError}
+          ariaLabel="New folder name"
+          onValueChange={(v) => newFolderName = v}
+          onConfirm={handleCreateFolder}
+          onCancel={cancelNewFolder}
         />
-        <button
-          type="button"
-          class="folder-action-btn confirm"
-          onclick={handleCreateFolder}
-          disabled={creating || !newFolderName.trim()}
-          aria-label="Create folder"
-        >
-          {creating ? '...' : '✓'}
-        </button>
-        <button
-          type="button"
-          class="folder-action-btn cancel"
-          onclick={cancelNewFolder}
-          disabled={creating}
-          aria-label="Cancel"
-        >
-          ✕
-        </button>
       </div>
-      {#if createError}
-        <span class="create-error" role="alert">{createError}</span>
-      {/if}
     {:else}
       <button
         type="button"
@@ -329,76 +312,6 @@
     gap: 0.25rem;
   }
 
-  .folder-name-input {
-    padding: 0.4rem 0.5rem;
-    font-size: 0.85rem;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-input-bg);
-    color: var(--color-text);
-    width: 150px;
-    transition: border-color 0.15s;
-  }
-
-  .folder-name-input:focus {
-    outline: none;
-    border-color: var(--color-focus);
-    box-shadow: 0 0 0 3px var(--color-focus-ring);
-  }
-
-  .folder-name-input.has-error {
-    border-color: var(--color-error, #dc3545);
-  }
-
-  .folder-action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    font-size: 0.9rem;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-bg);
-    color: var(--color-text);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .folder-action-btn:hover:not(:disabled) {
-    background: var(--color-hover);
-  }
-
-  .folder-action-btn:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-
-  .folder-action-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .folder-action-btn.confirm {
-    color: var(--color-success, #28a745);
-    border-color: var(--color-success, #28a745);
-  }
-
-  .folder-action-btn.confirm:hover:not(:disabled) {
-    background: rgba(40, 167, 69, 0.1);
-  }
-
-  .folder-action-btn.cancel {
-    color: var(--color-muted);
-  }
-
-  .create-error {
-    font-size: 0.8rem;
-    color: var(--color-error, #dc3545);
-    white-space: nowrap;
-  }
-
   .upload-button {
     display: flex;
     align-items: center;
@@ -513,10 +426,6 @@
 
     .folder-text {
       display: none;
-    }
-
-    .folder-name-input {
-      width: 120px;
     }
 
     .upload-text {
