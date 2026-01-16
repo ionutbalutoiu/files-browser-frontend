@@ -59,6 +59,10 @@
   let draggedEntry = $state<NginxEntry | null>(null)
   let dropTargetEntry = $state<NginxEntry | null>(null)
 
+  // Selection mode state
+  let isSelectionMode = $state(false)
+  let selectedEntries = $state<Set<string>>(new Set())
+
   // Parent directory entry (shown when not at root)
   const parentEntry: NginxEntry = { name: "..", type: "directory" }
 
@@ -164,6 +168,92 @@
     }
   }
 
+  // Selection mode handlers
+  function startSelectionMode(entry: NginxEntry) {
+    isSelectionMode = true
+    selectedEntries = new Set([entry.name])
+    // Close any open menu
+    storeToggleMenu("", {} as MouseEvent)
+  }
+
+  function cancelSelectionMode() {
+    isSelectionMode = false
+    selectedEntries = new Set()
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape" && isSelectionMode) {
+      cancelSelectionMode()
+    }
+  }
+
+  function toggleSelectEntry(entry: NginxEntry) {
+    const newSelected = new Set(selectedEntries)
+    if (newSelected.has(entry.name)) {
+      newSelected.delete(entry.name)
+    } else {
+      newSelected.add(entry.name)
+    }
+    selectedEntries = newSelected
+
+    // If no items selected, exit selection mode
+    if (newSelected.size === 0) {
+      isSelectionMode = false
+    }
+  }
+
+  async function moveSelectedToDirectory(targetEntry: NginxEntry) {
+    if (selectedEntries.size === 0) return
+
+    let destDir: string
+    let targetName: string
+
+    if (targetEntry.name === "..") {
+      destDir = getParentPath(currentPath)
+      targetName = "parent folder"
+    } else {
+      destDir = buildMovePath(currentPath, targetEntry.name)
+      targetName = targetEntry.name
+    }
+
+    const itemsToMove = [...selectedEntries]
+    const moveCount = itemsToMove.length
+
+    // Exit selection mode before moving
+    cancelSelectionMode()
+
+    let successCount = 0
+    let errorCount = 0
+
+    for (const itemName of itemsToMove) {
+      const sourcePath = buildMovePath(currentPath, itemName)
+      const destPath = buildMovePath(destDir, itemName)
+
+      try {
+        await moveFile(sourcePath, destPath)
+        successCount++
+      } catch {
+        errorCount++
+      }
+    }
+
+    if (errorCount === 0) {
+      showToast(
+        `Moved ${moveCount} item${moveCount > 1 ? "s" : ""} to ${targetName}`,
+        "success",
+      )
+    } else if (successCount > 0) {
+      showToast(
+        `Moved ${successCount} item${successCount > 1 ? "s" : ""}, ${errorCount} failed`,
+        "error",
+      )
+    } else {
+      showToast("Move failed", "error")
+    }
+
+    onRefresh()
+  }
+
   // Derived values for menu display
   let currentMenuEntry = $derived(
     getOpenMenu() ? entries.find((e) => e.name === getOpenMenu()) : null,
@@ -171,7 +261,18 @@
   let currentMenuPosition = $derived(getMenuPosition())
 </script>
 
-<svelte:document onclick={handleDocumentClick} />
+<svelte:document onclick={handleDocumentClick} onkeydown={handleKeydown} />
+
+{#if isSelectionMode}
+  <div class="selection-bar">
+    <span class="selection-count">
+      {selectedEntries.size} item{selectedEntries.size !== 1 ? "s" : ""} selected
+    </span>
+    <button type="button" class="cancel-btn" onclick={cancelSelectionMode}>
+      Cancel
+    </button>
+  </div>
+{/if}
 
 <div class="table-container">
   <table class="file-table" role="grid">
@@ -191,6 +292,8 @@
           isDragging={false}
           isDropTarget={dropTargetEntry?.name === ".."}
           isParentEntry={true}
+          {isSelectionMode}
+          isSelected={false}
           {onNavigate}
           onMenuToggle={() => {}}
           onRenameChange={() => {}}
@@ -201,6 +304,7 @@
           onDrop={handleDrop}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
+          onMoveHere={moveSelectedToDirectory}
         />
       {/if}
       {#if entries.length === 0 && (currentPath === "/" || currentPath === "")}
@@ -225,6 +329,8 @@
             isSubmitting={getIsSubmitting()}
             isDragging={draggedEntry?.name === entry.name}
             isDropTarget={dropTargetEntry?.name === entry.name}
+            {isSelectionMode}
+            isSelected={selectedEntries.has(entry.name)}
             {onNavigate}
             onMenuToggle={toggleMenu}
             onRenameChange={setRenameValue}
@@ -235,6 +341,9 @@
             onDrop={handleDrop}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
+            onToggleSelect={toggleSelectEntry}
+            onMoveHere={moveSelectedToDirectory}
+            onLongPress={startSelectionMode}
           />
         {/each}
       {/if}
@@ -251,6 +360,7 @@
     {onShare}
     onRename={startRename}
     onDelete={requestDelete}
+    onSelect={startSelectionMode}
   />
 {/if}
 
@@ -280,6 +390,42 @@
 {/if}
 
 <style>
+  .selection-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--color-active, rgba(0, 123, 255, 0.1));
+    border: 1px solid var(--color-link);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+  }
+
+  .selection-count {
+    font-weight: 500;
+    color: var(--color-text);
+  }
+
+  .cancel-btn {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .cancel-btn:hover {
+    background: var(--color-hover);
+  }
+
+  .cancel-btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
   .table-container {
     overflow-x: auto;
     margin-top: 0.5rem;
@@ -302,6 +448,14 @@
   @media (max-width: 480px) {
     .file-table {
       font-size: 0.85rem;
+    }
+
+    .selection-bar {
+      padding: 0.5rem 0.75rem;
+    }
+
+    .selection-count {
+      font-size: 0.9rem;
     }
   }
 </style>

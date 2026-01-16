@@ -14,6 +14,7 @@
     onShare: (entry: NginxEntry) => void
     onRename: (entry: NginxEntry) => void
     onDelete: (entry: NginxEntry) => void
+    onSelect: (entry: NginxEntry) => void
   }
 
   let {
@@ -23,6 +24,7 @@
     onShare,
     onRename,
     onDelete,
+    onSelect,
   }: Props = $props()
 </script>
 
@@ -47,6 +49,14 @@
       {/if}
     </button>
   {/if}
+  <button
+    type="button"
+    class="menu-item"
+    onclick={() => onSelect(entry)}
+    role="menuitem"
+  >
+    ☑️ Select
+  </button>
   <button
     type="button"
     class="menu-item"

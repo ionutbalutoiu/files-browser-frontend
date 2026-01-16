@@ -18,6 +18,8 @@
     isDragging: boolean
     isDropTarget: boolean
     isParentEntry?: boolean
+    isSelectionMode?: boolean
+    isSelected?: boolean
     onNavigate: (path: string) => void
     onMenuToggle: (entryName: string, event: MouseEvent) => void
     onRenameChange: (value: string) => void
@@ -28,6 +30,9 @@
     onDrop: (targetEntry: NginxEntry) => void
     onDragEnter: (targetEntry: NginxEntry) => void
     onDragLeave: (targetEntry: NginxEntry) => void
+    onToggleSelect?: (entry: NginxEntry) => void
+    onMoveHere?: (targetEntry: NginxEntry) => void
+    onLongPress?: (entry: NginxEntry) => void
   }
 
   let {
@@ -43,6 +48,8 @@
     isDragging,
     isDropTarget,
     isParentEntry = false,
+    isSelectionMode = false,
+    isSelected = false,
     onNavigate,
     onMenuToggle,
     onRenameChange,
@@ -53,6 +60,9 @@
     onDrop,
     onDragEnter,
     onDragLeave,
+    onToggleSelect,
+    onMoveHere,
+    onLongPress,
   }: Props = $props()
 
   let renameInputRef: ReturnType<typeof InlineNameInput> | null = $state(null)
@@ -163,6 +173,45 @@
     event.preventDefault()
     onDrop(entry)
   }
+
+  // Long press handling for mobile
+  const LONG_PRESS_DURATION = 500
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null
+  let touchStartPos = { x: 0, y: 0 }
+
+  function handleTouchStart(event: TouchEvent) {
+    if (isParentEntry || isSelectionMode || isRenaming || isDeleting) return
+
+    const touch = event.touches[0]
+    touchStartPos = { x: touch.clientX, y: touch.clientY }
+
+    longPressTimer = setTimeout(() => {
+      onLongPress?.(entry)
+      longPressTimer = null
+    }, LONG_PRESS_DURATION)
+  }
+
+  function handleTouchMove(event: TouchEvent) {
+    if (!longPressTimer) return
+
+    const touch = event.touches[0]
+    const dx = touch.clientX - touchStartPos.x
+    const dy = touch.clientY - touchStartPos.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+
+    // Cancel long press if moved too much
+    if (distance > 10) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+  }
+
+  function handleTouchEnd() {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+  }
 </script>
 
 <tr
@@ -172,8 +221,10 @@
   class:dragging={isDragging}
   class:drop-target={isDropTarget}
   class:parent-entry={isParentEntry}
+  class:selected={isSelected}
+  class:selection-mode={isSelectionMode}
   tabindex="0"
-  draggable={!isRenaming && !isDeleting && !isParentEntry}
+  draggable={!isRenaming && !isDeleting && !isParentEntry && !isSelectionMode}
   onkeydown={handleKeydown}
   ondragstart={handleDragStart}
   ondragend={handleDragEnd}
@@ -181,8 +232,21 @@
   ondragenter={handleDragEnter}
   ondragleave={handleDragLeave}
   ondrop={handleDrop}
+  ontouchstart={handleTouchStart}
+  ontouchmove={handleTouchMove}
+  ontouchend={handleTouchEnd}
+  ontouchcancel={handleTouchEnd}
 >
   <td class="col-name">
+    {#if isSelectionMode && !isParentEntry}
+      <input
+        type="checkbox"
+        class="select-checkbox"
+        checked={isSelected}
+        onchange={() => onToggleSelect?.(entry)}
+        aria-label="Select {entry.name}"
+      />
+    {/if}
     <span class="icon" aria-hidden="true">{getIcon(entry.type)}</span>
     {#if isRenaming}
       <InlineNameInput
@@ -230,7 +294,20 @@
     <span class="date-full">{formatDate(entry.mtime)}</span>
   </td>
   <td class="col-actions">
-    {#if !isParentEntry}
+    {#if isSelectionMode && entry.type === "directory"}
+      <button
+        type="button"
+        class="move-here-btn"
+        onclick={() => onMoveHere?.(entry)}
+        aria-label="Move selected items to {isParentEntry
+          ? 'parent folder'
+          : entry.name}"
+        title="Move here"
+        disabled={isSelected}
+      >
+        ↓
+      </button>
+    {:else if !isParentEntry && !isSelectionMode}
       <div class="action-menu">
         <button
           type="button"
@@ -303,10 +380,73 @@
     cursor: default;
   }
 
+  .file-row.selected {
+    background: var(--color-active, rgba(0, 123, 255, 0.1));
+  }
+
+  .file-row.selection-mode {
+    cursor: default;
+  }
+
+  .file-row.selection-mode[draggable="true"] {
+    cursor: default;
+  }
+
   td {
     padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--color-border-light);
     vertical-align: middle;
+  }
+
+  .select-checkbox {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    margin-right: 0.5rem;
+    cursor: pointer;
+    accent-color: var(--color-link);
+    flex-shrink: 0;
+  }
+
+  .move-here-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--color-link);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-link);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
+  }
+
+  .move-here-btn:hover {
+    background: var(--color-link);
+    color: var(--color-bg);
+  }
+
+  .move-here-btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .move-here-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: var(--color-muted);
+    color: var(--color-muted);
+  }
+
+  .move-here-btn:disabled:hover {
+    background: transparent;
+    color: var(--color-muted);
   }
 
   .col-name {
