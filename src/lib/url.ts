@@ -130,3 +130,25 @@ export function buildApiUrl(
 
   return normalizePath(`${normalizedEndpoint}/${normalizedPath}`)
 }
+
+/**
+ * Get the parent directory path.
+ * Returns "/" for root-level paths.
+ *
+ * @param path - The current path
+ * @returns Parent directory path with leading slash
+ *
+ * @example
+ * getParentPath("/photos/2026/") => "/photos/"
+ * getParentPath("/photos/") => "/"
+ * getParentPath("/file.txt") => "/"
+ */
+export function getParentPath(path: string): string {
+  const normalized = stripSlashes(path)
+  if (!normalized) return "/"
+
+  const lastSlash = normalized.lastIndexOf("/")
+  if (lastSlash === -1) return "/"
+
+  return "/" + normalized.slice(0, lastSlash) + "/"
+}

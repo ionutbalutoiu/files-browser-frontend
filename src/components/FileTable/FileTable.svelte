@@ -28,6 +28,7 @@
     handleShare,
   } from "../../lib/stores/fileTable"
   import { moveFile, buildMovePath } from "../../lib/api"
+  import { getParentPath } from "../../lib/url"
   import { showToast } from "../../lib/stores/toast.svelte"
   import FileTableHeader from "./FileTableHeader.svelte"
   import FileTableRow from "./FileTableRow.svelte"
@@ -57,6 +58,9 @@
   // Drag and drop state
   let draggedEntry = $state<NginxEntry | null>(null)
   let dropTargetEntry = $state<NginxEntry | null>(null)
+
+  // Parent directory entry (shown when not at root)
+  const parentEntry: NginxEntry = { name: "..", type: "directory" }
 
   // Wrap toggleMenu to also clear delete error
   function toggleMenu(entryName: string, event: MouseEvent) {
@@ -125,18 +129,31 @@
 
     // Build source and destination paths
     const sourcePath = buildMovePath(currentPath, draggedEntry.name)
-    const destDir = buildMovePath(currentPath, targetEntry.name)
-    const destPath = buildMovePath(destDir, draggedEntry.name)
+
+    let destDir: string
+    let destPath: string
+    let targetName: string
+
+    if (targetEntry.name === "..") {
+      // Moving to parent directory
+      destDir = getParentPath(currentPath)
+      destPath = buildMovePath(destDir, draggedEntry.name)
+      targetName = "parent folder"
+    } else {
+      // Moving to a subdirectory
+      destDir = buildMovePath(currentPath, targetEntry.name)
+      destPath = buildMovePath(destDir, draggedEntry.name)
+      targetName = targetEntry.name
+    }
 
     const itemName = draggedEntry.name
-    const targetName = targetEntry.name
 
     // Clear drag state before async operation
     handleDragEnd()
 
     try {
       await moveFile(sourcePath, destPath)
-      showToast(`Moved "${itemName}" to "${targetName}"`, "success")
+      showToast(`Moved "${itemName}" to ${targetName}`, "success")
       onRefresh()
     } catch (error) {
       const message =
@@ -160,7 +177,33 @@
   <table class="file-table" role="grid">
     <FileTableHeader {sort} {onSortChange} />
     <tbody>
-      {#if entries.length === 0}
+      {#if currentPath !== "/" && currentPath !== ""}
+        <FileTableRow
+          entry={parentEntry}
+          {currentPath}
+          isMenuOpen={false}
+          isDeleting={false}
+          isRenaming={false}
+          renameValue=""
+          renameError={null}
+          deleteError={null}
+          isSubmitting={false}
+          isDragging={false}
+          isDropTarget={dropTargetEntry?.name === ".."}
+          isParentEntry={true}
+          {onNavigate}
+          onMenuToggle={() => {}}
+          onRenameChange={() => {}}
+          onRenameConfirm={() => {}}
+          onRenameCancel={() => {}}
+          onDragStart={() => {}}
+          onDragEnd={handleDragEnd}
+          onDrop={handleDrop}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+        />
+      {/if}
+      {#if entries.length === 0 && (currentPath === "/" || currentPath === "")}
         <tr class="empty-row">
           <td colspan="4">No files found</td>
         </tr>

@@ -2,6 +2,7 @@
   import type { NginxEntry } from "../../lib/types"
   import { formatSize, formatDate } from "../../lib/format"
   import { getFileUrl, getDirectoryUrl } from "../../lib/api"
+  import { getParentPath } from "../../lib/url"
   import InlineNameInput from "../shared/InlineNameInput.svelte"
 
   interface Props {
@@ -16,6 +17,7 @@
     isSubmitting: boolean
     isDragging: boolean
     isDropTarget: boolean
+    isParentEntry?: boolean
     onNavigate: (path: string) => void
     onMenuToggle: (entryName: string, event: MouseEvent) => void
     onRenameChange: (value: string) => void
@@ -40,6 +42,7 @@
     isSubmitting,
     isDragging,
     isDropTarget,
+    isParentEntry = false,
     onNavigate,
     onMenuToggle,
     onRenameChange,
@@ -60,8 +63,13 @@
 
   function handleDirectoryClick(event: MouseEvent) {
     event.preventDefault()
-    const newPath = getDirectoryUrl(currentPath, entry.name)
-    onNavigate(newPath)
+    if (isParentEntry) {
+      const parentPath = getParentPath(currentPath)
+      onNavigate(parentPath)
+    } else {
+      const newPath = getDirectoryUrl(currentPath, entry.name)
+      onNavigate(newPath)
+    }
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -70,7 +78,10 @@
 
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
-      if (entry.type === "directory") {
+      if (isParentEntry) {
+        const parentPath = getParentPath(currentPath)
+        onNavigate(parentPath)
+      } else if (entry.type === "directory") {
         const newPath = getDirectoryUrl(currentPath, entry.name)
         onNavigate(newPath)
       } else {
@@ -104,7 +115,7 @@
 
   // Drag and drop handlers
   function handleDragStart(event: DragEvent) {
-    if (isRenaming || isDeleting) {
+    if (isRenaming || isDeleting || isParentEntry) {
       event.preventDefault()
       return
     }
@@ -160,8 +171,9 @@
   class:has-error={deleteError !== null}
   class:dragging={isDragging}
   class:drop-target={isDropTarget}
+  class:parent-entry={isParentEntry}
   tabindex="0"
-  draggable={!isRenaming && !isDeleting}
+  draggable={!isRenaming && !isDeleting && !isParentEntry}
   onkeydown={handleKeydown}
   ondragstart={handleDragStart}
   ondragend={handleDragEnd}
@@ -186,7 +198,9 @@
       />
     {:else if entry.type === "directory"}
       <a
-        href="#{getDirectoryUrl(currentPath, entry.name)}"
+        href="#{isParentEntry
+          ? getParentPath(currentPath)
+          : getDirectoryUrl(currentPath, entry.name)}"
         onclick={handleDirectoryClick}
         class="entry-link"
       >
@@ -216,25 +230,27 @@
     <span class="date-full">{formatDate(entry.mtime)}</span>
   </td>
   <td class="col-actions">
-    <div class="action-menu">
-      <button
-        type="button"
-        class="menu-trigger"
-        class:active={isMenuOpen}
-        onclick={(e) => onMenuToggle(entry.name, e)}
-        onkeydown={handleMenuKeydown}
-        aria-haspopup="menu"
-        aria-expanded={isMenuOpen}
-        aria-label="Actions for {entry.name}"
-        disabled={isDeleting}
-      >
-        {#if isDeleting}
-          <span class="spinner-small"></span>
-        {:else}
-          ⋮
-        {/if}
-      </button>
-    </div>
+    {#if !isParentEntry}
+      <div class="action-menu">
+        <button
+          type="button"
+          class="menu-trigger"
+          class:active={isMenuOpen}
+          onclick={(e) => onMenuToggle(entry.name, e)}
+          onkeydown={handleMenuKeydown}
+          aria-haspopup="menu"
+          aria-expanded={isMenuOpen}
+          aria-label="Actions for {entry.name}"
+          disabled={isDeleting}
+        >
+          {#if isDeleting}
+            <span class="spinner-small"></span>
+          {:else}
+            ⋮
+          {/if}
+        </button>
+      </div>
+    {/if}
   </td>
 </tr>
 
@@ -281,6 +297,10 @@
 
   .file-row[draggable="true"]:active {
     cursor: grabbing;
+  }
+
+  .file-row.parent-entry {
+    cursor: default;
   }
 
   td {
