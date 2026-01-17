@@ -117,9 +117,12 @@
     dropTargetEntry = targetEntry
   }
 
-  function handleDragLeave(_targetEntry: NginxEntry) {
+  function handleDragLeave(targetEntry: NginxEntry) {
     // Only clear if we're leaving the current drop target
-    dropTargetEntry = null
+    // This prevents clearing when dragenter on new row fires before dragleave on old row
+    if (dropTargetEntry?.name === targetEntry.name) {
+      dropTargetEntry = null
+    }
   }
 
   async function handleDrop(targetEntry: NginxEntry) {
