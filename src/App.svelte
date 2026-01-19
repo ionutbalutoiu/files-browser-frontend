@@ -46,6 +46,16 @@
   // Upload panel visibility
   let showUpload = $state(false)
 
+  // Selection mode state
+  let isSelectionMode = $state(false)
+  let selectedEntries = $state<Set<string>>(new Set())
+
+  // Cancel selection mode
+  function cancelSelectionMode() {
+    isSelectionMode = false
+    selectedEntries = new Set()
+  }
+
   // Derived: processed entries with filter and sort applied
   let processedEntries = $derived(processEntries(entries, filter, sort))
 
@@ -158,10 +168,12 @@
         {sort}
         {showUpload}
         {currentPath}
+        selectedCount={selectedEntries.size}
         onSearchChange={handleSearchChange}
         onSortChange={handleSortChange}
         onUploadToggle={toggleUpload}
         onDirectoryCreated={() => loadDirectory(currentPath)}
+        onCancelSelection={cancelSelectionMode}
       />
 
       {#if showUpload}
@@ -188,10 +200,15 @@
           entries={processedEntries}
           {currentPath}
           {sort}
+          {isSelectionMode}
+          {selectedEntries}
           onNavigate={handleNavigate}
           onSortChange={handleSortChange}
           onDelete={() => loadDirectory(currentPath)}
           onRefresh={() => loadDirectory(currentPath)}
+          onSelectionModeChange={(mode: boolean) => (isSelectionMode = mode)}
+          onSelectedEntriesChange={(entries: Set<string>) =>
+            (selectedEntries = entries)}
         />
 
         <footer class="footer">

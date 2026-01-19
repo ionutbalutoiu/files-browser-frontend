@@ -39,29 +39,33 @@
     entries: NginxEntry[]
     currentPath: string
     sort: SortState
+    isSelectionMode: boolean
+    selectedEntries: Set<string>
     onNavigate: (path: string) => void
     onSortChange: (field: SortField) => void
     onDelete: () => void
     onRefresh: () => void
+    onSelectionModeChange: (mode: boolean) => void
+    onSelectedEntriesChange: (entries: Set<string>) => void
   }
 
   let {
     entries,
     currentPath,
     sort,
+    isSelectionMode,
+    selectedEntries,
     onNavigate,
     onSortChange,
     onDelete,
     onRefresh,
+    onSelectionModeChange,
+    onSelectedEntriesChange,
   }: Props = $props()
 
   // Drag and drop state
   let draggedEntry = $state<NginxEntry | null>(null)
   let dropTargetEntry = $state<NginxEntry | null>(null)
-
-  // Selection mode state
-  let isSelectionMode = $state(false)
-  let selectedEntries = $state<Set<string>>(new Set())
 
   // Parent directory entry (shown when not at root)
   const parentEntry: NginxEntry = { name: "..", type: "directory" }
@@ -173,15 +177,15 @@
 
   // Selection mode handlers
   function startSelectionMode(entry: NginxEntry) {
-    isSelectionMode = true
-    selectedEntries = new Set([entry.name])
+    onSelectionModeChange(true)
+    onSelectedEntriesChange(new Set([entry.name]))
     // Close any open menu
     storeToggleMenu("", {} as MouseEvent)
   }
 
   function cancelSelectionMode() {
-    isSelectionMode = false
-    selectedEntries = new Set()
+    onSelectionModeChange(false)
+    onSelectedEntriesChange(new Set())
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -197,11 +201,11 @@
     } else {
       newSelected.add(entry.name)
     }
-    selectedEntries = newSelected
+    onSelectedEntriesChange(newSelected)
 
     // If no items selected, exit selection mode
     if (newSelected.size === 0) {
-      isSelectionMode = false
+      onSelectionModeChange(false)
     }
   }
 
@@ -265,17 +269,6 @@
 </script>
 
 <svelte:document onclick={handleDocumentClick} onkeydown={handleKeydown} />
-
-{#if isSelectionMode}
-  <div class="selection-bar">
-    <span class="selection-count">
-      {selectedEntries.size} item{selectedEntries.size !== 1 ? "s" : ""} selected
-    </span>
-    <button type="button" class="cancel-btn" onclick={cancelSelectionMode}>
-      Cancel
-    </button>
-  </div>
-{/if}
 
 <div class="table-container">
   <table class="file-table" role="grid">
@@ -393,42 +386,6 @@
 {/if}
 
 <style>
-  .selection-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    background: var(--color-active, rgba(0, 123, 255, 0.1));
-    border: 1px solid var(--color-link);
-    border-radius: 6px;
-    margin-bottom: 0.5rem;
-  }
-
-  .selection-count {
-    font-weight: 500;
-    color: var(--color-text);
-  }
-
-  .cancel-btn {
-    padding: 0.4rem 0.75rem;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    background: var(--color-bg);
-    color: var(--color-text);
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: background-color 0.15s;
-  }
-
-  .cancel-btn:hover {
-    background: var(--color-hover);
-  }
-
-  .cancel-btn:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-
   .table-container {
     overflow-x: auto;
     margin-top: 0.5rem;
@@ -451,14 +408,6 @@
   @media (max-width: 480px) {
     .file-table {
       font-size: 0.85rem;
-    }
-
-    .selection-bar {
-      padding: 0.5rem 0.75rem;
-    }
-
-    .selection-count {
-      font-size: 0.9rem;
     }
   }
 </style>

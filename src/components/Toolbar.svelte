@@ -7,10 +7,12 @@
     sort: SortState
     showUpload: boolean
     currentPath: string
+    selectedCount: number
     onSearchChange: (search: string) => void
     onSortChange: (field: SortField) => void
     onUploadToggle: () => void
     onDirectoryCreated: () => void
+    onCancelSelection: () => void
   }
 
   let {
@@ -18,10 +20,12 @@
     sort,
     showUpload,
     currentPath,
+    selectedCount,
     onSearchChange,
     onSortChange,
     onUploadToggle,
     onDirectoryCreated,
+    onCancelSelection,
   }: Props = $props()
 
   // New folder visibility state
@@ -99,7 +103,14 @@
   </div>
 
   <div class="action-buttons">
-    {#if showNewFolder}
+    {#if selectedCount > 0}
+      <span class="selection-count">
+        {selectedCount} item{selectedCount !== 1 ? "s" : ""} selected
+      </span>
+      <button type="button" class="cancel-btn" onclick={onCancelSelection}>
+        Cancel
+      </button>
+    {:else if showNewFolder}
       <NewFolderInput
         {currentPath}
         onCreated={handleFolderCreated}
@@ -114,21 +125,20 @@
         <span class="folder-icon" aria-hidden="true">📁</span>
         <span class="folder-text">New Folder</span>
       </button>
-    {/if}
-
-    <button
-      type="button"
-      class="upload-button"
-      class:active={showUpload}
-      onclick={onUploadToggle}
-      aria-expanded={showUpload}
-      aria-controls="upload-panel"
-    >
-      <span class="upload-icon" aria-hidden="true"
-        >{showUpload ? "✕" : "↑"}</span
+      <button
+        type="button"
+        class="upload-button"
+        class:active={showUpload}
+        onclick={onUploadToggle}
+        aria-expanded={showUpload}
+        aria-controls="upload-panel"
       >
-      <span class="upload-text">{showUpload ? "Close" : "Upload"}</span>
-    </button>
+        <span class="upload-icon" aria-hidden="true"
+          >{showUpload ? "✕" : "↑"}</span
+        >
+        <span class="upload-text">{showUpload ? "Close" : "Upload"}</span>
+      </button>
+    {/if}
   </div>
 </div>
 
@@ -308,6 +318,35 @@
   .upload-icon {
     font-size: 0.9rem;
     line-height: 1;
+  }
+
+  .selection-count {
+    font-weight: 500;
+    color: var(--color-text);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .cancel-btn {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .cancel-btn:hover {
+    background: var(--color-hover);
+    border-color: var(--color-border-hover);
+  }
+
+  .cancel-btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
   }
 
   .visually-hidden {
