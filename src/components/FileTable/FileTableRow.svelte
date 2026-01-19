@@ -212,6 +212,14 @@
       longPressTimer = null
     }
   }
+
+  function handleRowClick(event: MouseEvent) {
+    if (!isSelectionMode || isParentEntry) return
+    // Don't toggle if clicking on the move-here button or entry link
+    const target = event.target as HTMLElement
+    if (target.closest(".move-here-btn") || target.closest(".entry-link")) return
+    onToggleSelect?.(entry)
+  }
 </script>
 
 <tr
@@ -236,17 +244,9 @@
   ontouchmove={handleTouchMove}
   ontouchend={handleTouchEnd}
   ontouchcancel={handleTouchEnd}
+  onclick={handleRowClick}
 >
   <td class="col-name">
-    {#if isSelectionMode && !isParentEntry}
-      <input
-        type="checkbox"
-        class="select-checkbox"
-        checked={isSelected}
-        onchange={() => onToggleSelect?.(entry)}
-        aria-label="Select {entry.name}"
-      />
-    {/if}
     <span class="icon" aria-hidden="true">{getIcon(entry.type)}</span>
     {#if isRenaming}
       <InlineNameInput
@@ -381,31 +381,18 @@
   }
 
   .file-row.selected {
-    background: var(--color-active, rgba(0, 123, 255, 0.1));
+    background: var(--color-selected-bg, rgba(0, 123, 255, 0.15));
+    box-shadow: inset 3px 0 0 var(--color-link);
   }
 
-  .file-row.selection-mode {
-    cursor: default;
-  }
-
-  .file-row.selection-mode[draggable="true"] {
-    cursor: default;
+  .file-row.selection-mode:not(.parent-entry) {
+    cursor: pointer;
   }
 
   td {
     padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--color-border-light);
     vertical-align: middle;
-  }
-
-  .select-checkbox {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    margin-right: 0.5rem;
-    cursor: pointer;
-    accent-color: var(--color-link);
-    flex-shrink: 0;
   }
 
   .move-here-btn {
