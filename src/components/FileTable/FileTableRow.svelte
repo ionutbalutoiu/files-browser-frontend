@@ -334,6 +334,8 @@
 <style>
   .file-row {
     transition: background-color 0.1s;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .file-row:hover {
