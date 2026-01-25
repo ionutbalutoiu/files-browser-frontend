@@ -71,17 +71,6 @@
     return type === "directory" ? "📁" : "📄"
   }
 
-  function handleDirectoryClick(event: MouseEvent) {
-    event.preventDefault()
-    if (isParentEntry) {
-      const parentPath = getParentPath(currentPath)
-      onNavigate(parentPath)
-    } else {
-      const newPath = getDirectoryUrl(currentPath, entry.name)
-      onNavigate(newPath)
-    }
-  }
-
   function handleKeydown(event: KeyboardEvent) {
     // Don't handle navigation keys when renaming
     if (isRenaming) return
@@ -214,11 +203,27 @@
   }
 
   function handleRowClick(event: MouseEvent) {
-    if (!isSelectionMode || isParentEntry) return
-    // Don't toggle if clicking on the move-here button or entry link
+    // Don't handle if clicking on interactive elements
     const target = event.target as HTMLElement
-    if (target.closest(".move-here-btn") || target.closest(".entry-link")) return
-    onToggleSelect?.(entry)
+    if (target.closest(".move-here-btn") || target.closest(".menu-trigger"))
+      return
+
+    // In selection mode, toggle selection (except for parent entry)
+    if (isSelectionMode && !isParentEntry) {
+      onToggleSelect?.(entry)
+      return
+    }
+
+    // Navigate to directory or open file
+    if (isParentEntry) {
+      const parentPath = getParentPath(currentPath)
+      onNavigate(parentPath)
+    } else if (entry.type === "directory") {
+      const newPath = getDirectoryUrl(currentPath, entry.name)
+      onNavigate(newPath)
+    } else {
+      window.open(getFileUrl(currentPath, entry.name), "_blank")
+    }
   }
 </script>
 
@@ -260,25 +265,8 @@
         onConfirm={onRenameConfirm}
         onCancel={onRenameCancel}
       />
-    {:else if entry.type === "directory"}
-      <a
-        href="#{isParentEntry
-          ? getParentPath(currentPath)
-          : getDirectoryUrl(currentPath, entry.name)}"
-        onclick={handleDirectoryClick}
-        class="entry-link"
-      >
-        {entry.name}
-      </a>
     {:else}
-      <a
-        href={getFileUrl(currentPath, entry.name)}
-        target="_blank"
-        rel="noopener"
-        class="entry-link"
-      >
-        {entry.name}
-      </a>
+      <span class="entry-name">{entry.name}</span>
     {/if}
     {#if deleteError}
       <span class="delete-error" role="alert">{deleteError}</span>
@@ -387,7 +375,7 @@
     box-shadow: inset 3px 0 0 var(--color-link);
   }
 
-  .file-row.selection-mode:not(.parent-entry) {
+  .file-row:not(.parent-entry) {
     cursor: pointer;
   }
 
@@ -451,19 +439,13 @@
     font-size: 1.1rem;
   }
 
-  .entry-link {
+  .entry-name {
     color: var(--color-link);
-    text-decoration: none;
     word-break: break-word;
   }
 
-  .entry-link:hover {
+  .file-row:hover .entry-name {
     text-decoration: underline;
-  }
-
-  .entry-link:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
   }
 
   .delete-error {
@@ -591,11 +573,6 @@
 
     .file-row {
       min-height: 44px;
-    }
-
-    .entry-link {
-      padding: 0.25rem 0;
-      display: inline-block;
     }
 
     .menu-trigger {
