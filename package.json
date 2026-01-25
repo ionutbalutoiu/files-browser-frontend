@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "npx tsx src/lib/url.test.ts"
+    "test": "npx tsx src/lib/url.test.ts",
+    "format": "prettier --write \"src/**/*.{ts,js,svelte,css,md,json,html}\" \"*.md\""
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.3",

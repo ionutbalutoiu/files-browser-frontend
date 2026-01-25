@@ -1,0 +1,17 @@
+node_modules
+.vite
+dist
+.build
+.svelte-kit
+coverage
+.idea
+.vscode
+.DS_Store
+public/build
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Ignore generated files
+src/lib/api/*.test.ts
+
