@@ -4,8 +4,8 @@
  */
 
 import { parseNginxResponse } from "../nginxAutoindex"
-import { buildApiUrl } from "../url"
-import { API_ENDPOINTS } from "../constants"
+import { normalizePath } from "../url"
+import { BACKEND_ENDPOINTS } from "../constants"
 import { fetchWithTimeout } from "./http"
 import type { FetchResult, AppError } from "../types"
 
@@ -16,9 +16,8 @@ import type { FetchResult, AppError } from "../types"
 export async function fetchDirectory(path: string): Promise<FetchResult> {
   // Ensure path starts with /
   const normalizedPath = path.startsWith("/") ? path : `/${path}`
-
   // Build the fetch URL with proper normalization
-  const url = buildApiUrl(API_ENDPOINTS.FILES, normalizedPath, true)
+  const url = normalizePath(`${BACKEND_ENDPOINTS.FILES}${normalizedPath}`)
 
   const response = await fetchWithTimeout(url, {
     headers: {
@@ -71,11 +70,9 @@ export function getFileUrl(directoryPath: string, fileName: string): string {
     ? directoryPath
     : `/${directoryPath}`
   const encodedName = encodeURIComponent(fileName)
-  return buildApiUrl(
-    API_ENDPOINTS.FILES,
-    `${normalizedDir}${encodedName}`,
-    false,
-  )
+  const endpoint = BACKEND_ENDPOINTS.FILES.replace(/\/+$/, "")
+  const p = `${normalizedDir}${encodedName}`.replace(/^\/+/, "")
+  return normalizePath(`${endpoint}/${p}`)
 }
 
 /**

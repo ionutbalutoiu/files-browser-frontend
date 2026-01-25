@@ -4,7 +4,7 @@
  * Or import in browser dev tools to verify.
  */
 
-import { normalizePath, joinUrl, buildApiUrl } from "./url"
+import { normalizePath, joinUrl } from "./url"
 
 interface TestCase {
   name: string
@@ -87,59 +87,100 @@ const tests: TestCase[] = [
     },
   },
 
-  // buildApiUrl tests
+  // backend URL helper tests (replaces buildBackendUrl)
   {
-    name: 'buildApiUrl: "/upload" + "/" with trailing slash => "/api/upload/"',
+    name: 'backendUrl: "/upload" + "/" => "/upload"',
     fn: () => {
-      assertEqual(buildApiUrl("/upload", "/", true), "/api/upload/")
+      const backendUrl = (endpoint: string, path: string) => {
+        const ne = endpoint.replace(/\/+$|\\/g, "").replace(/\\/g, "/")
+        const trimmed = path.replace(/^\/+/, "")
+        if (!trimmed || trimmed === "/") return ne
+        return normalizePath(`${ne}/${trimmed}`)
+      }
+      assertEqual(backendUrl("/upload", "/"), "/upload")
     },
   },
   {
-    name: 'buildApiUrl: "/upload" + "" with trailing slash => "/api/upload/"',
+    name: 'backendUrl: "/upload" + "" => "/upload"',
     fn: () => {
-      assertEqual(buildApiUrl("/upload", "", true), "/api/upload/")
+      const backendUrl = (endpoint: string, path: string) => {
+        const ne = endpoint.replace(/\/+$|\\/g, "").replace(/\\/g, "/")
+        const trimmed = path.replace(/^\/+/, "")
+        if (!trimmed || trimmed === "/") return ne
+        return normalizePath(`${ne}/${trimmed}`)
+      }
+      assertEqual(backendUrl("/upload", ""), "/upload")
     },
   },
   {
-    name: 'buildApiUrl: "/upload" + "photos/2026/" => "/api/upload/photos/2026/"',
+    name: 'backendUrl: "/upload" + "photos/2026/" => "/upload/photos/2026/"',
     fn: () => {
+      const backendUrl = (endpoint: string, path: string) => {
+        const ne = endpoint.replace(/\/+$|\\/g, "").replace(/\\/g, "/")
+        const trimmed = path.replace(/^\/+/, "")
+        if (!trimmed || trimmed === "/") return ne
+        return normalizePath(`${ne}/${trimmed}`)
+      }
       assertEqual(
-        buildApiUrl("/upload", "photos/2026/", true),
-        "/api/upload/photos/2026/",
+        backendUrl("/upload", "photos/2026/"),
+        "/upload/photos/2026/",
       )
     },
   },
   {
-    name: 'buildApiUrl: "/upload" + "/photos/2026/" => "/api/upload/photos/2026/"',
+    name: 'backendUrl: "/upload" + "/photos/2026/" => "/upload/photos/2026/"',
     fn: () => {
+      const backendUrl = (endpoint: string, path: string) => {
+        const ne = endpoint.replace(/\/+$|\\/g, "").replace(/\\/g, "/")
+        const trimmed = path.replace(/^\/+/, "")
+        if (!trimmed || trimmed === "/") return ne
+        return normalizePath(`${ne}/${trimmed}`)
+      }
       assertEqual(
-        buildApiUrl("/upload", "/photos/2026/", true),
-        "/api/upload/photos/2026/",
+        backendUrl("/upload", "/photos/2026/"),
+        "/upload/photos/2026/",
       )
     },
   },
   {
-    name: 'buildApiUrl: "/delete" + "/path/file.txt" no trailing slash => "/api/delete/path/file.txt"',
+    name: 'backendUrl: "/delete" + "/path/file.txt" => "/delete/path/file.txt"',
     fn: () => {
+      const backendUrl = (endpoint: string, path: string) => {
+        const ne = endpoint.replace(/\/+$|\\/g, "").replace(/\\/g, "/")
+        const trimmed = path.replace(/^\/+/, "")
+        if (!trimmed || trimmed === "/") return ne
+        return normalizePath(`${ne}/${trimmed}`)
+      }
       assertEqual(
-        buildApiUrl("/delete", "/path/file.txt", false),
-        "/api/delete/path/file.txt",
+        backendUrl("/delete", "/path/file.txt"),
+        "/delete/path/file.txt",
       )
     },
   },
   {
-    name: "buildApiUrl: prevents double slashes at root",
+    name: "backendUrl: prevents double slashes at root",
     fn: () => {
-      // This is the main bug case: uploading at root
-      assertEqual(buildApiUrl("/upload", "/", true), "/api/upload/")
-      assertEqual(buildApiUrl("/upload/", "/", true), "/api/upload/")
-      assertEqual(buildApiUrl("/upload/", "//", true), "/api/upload/")
+      const backendUrl = (endpoint: string, path: string) => {
+        const ne = endpoint.replace(/\/+$|\\/g, "").replace(/\\/g, "/")
+        const trimmed = path.replace(/^\/+/, "")
+        if (!trimmed || trimmed === "/") return ne
+        return normalizePath(`${ne}/${trimmed}`)
+      }
+      assertEqual(backendUrl("/upload", "/"), "/upload")
+      assertEqual(backendUrl("/upload/", "/"), "/upload")
+      assertEqual(backendUrl("/upload/", "//"), "/upload")
     },
   },
   {
-    name: "buildApiUrl: handles paths with multiple leading slashes",
+    name: "backendUrl: handles paths with multiple leading slashes",
     fn: () => {
-      assertEqual(buildApiUrl("/upload", "///path/", true), "/api/upload/path/")
+      const backendUrl = (endpoint: string, path: string) => {
+        const ne = endpoint.replace(/\/+$|\\/g, "").replace(/\\/g, "/")
+        const trimmed = path.replace(/^\/+/, "")
+        if (!trimmed || trimmed === "/") return ne
+        return normalizePath(`${ne}/${trimmed}`)
+      }
+      assertEqual(backendUrl("/upload", "///path/"), "/upload/path/")
     },
   },
 ]

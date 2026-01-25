@@ -17,16 +17,24 @@ export const MAX_FILE_SIZE_LABEL = "2GB"
 // API Endpoints
 // =============================================================================
 
-export const API_ENDPOINTS = {
+export const BACKEND_ENDPOINTS = {
+  /** GET /files/{path} - directory listing */
   FILES: "/files",
-  UPLOAD: "/upload",
-  DELETE: "/delete",
-  RENAME: "/rename",
-  MKDIR: "/mkdir",
-  MV: "/mv",
-  SHARE_PUBLIC: "/share-public",
-  SHARE_PUBLIC_FILES: "/share-public-files/",
-  SHARE_PUBLIC_DELETE: "/share-public-delete",
+
+  /** PUT/DELETE /api/files - file upload,delete */
+  API_FILES: "/api/files",
+
+  /** POST /api/files/move - move file/folder */
+  API_FILES_MOVE: "/api/files/move",
+
+  /** POST /api/files/rename - rename file/folder */
+  API_FILES_RENAME: "/api/files/rename",
+
+  /** POST /api/folders - create folder */
+  API_FOLDERS: "/api/folders",
+
+  /** GET/POST/DELETE /api/public-shares - public sharing */
+  API_PUBLIC_SHARES: "/api/public-shares",
 } as const
 
 // =============================================================================

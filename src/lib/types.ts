@@ -101,7 +101,8 @@ export interface CreateDirectoryResult {
 // =============================================================================
 
 export interface SharePublicResult {
-  shared: string
+  shareId: string
+  path: string
 }
 
 // =============================================================================
@@ -109,7 +110,17 @@ export interface SharePublicResult {
 // =============================================================================
 
 export interface MoveResult {
-  source: string
-  dest: string
+  from: string
+  to: string
+  success: boolean
+}
+
+// =============================================================================
+// Rename Types
+// =============================================================================
+
+export interface RenameResult {
+  from: string
+  to: string
   success: boolean
 }

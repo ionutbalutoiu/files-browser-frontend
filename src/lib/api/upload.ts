@@ -3,8 +3,11 @@
  * Handles uploading files with optional progress tracking.
  */
 
-import { buildApiUrl } from "../url"
-import { API_ENDPOINTS, MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from "../constants"
+import {
+  BACKEND_ENDPOINTS,
+  MAX_FILE_SIZE,
+  MAX_FILE_SIZE_LABEL,
+} from "../constants"
 import type { UploadResult, AppError } from "../types"
 
 /**
@@ -40,11 +43,15 @@ export async function uploadFiles(
     formData.append("files", file)
   }
 
-  // Build upload URL with proper path normalization
-  const uploadUrl = buildApiUrl(API_ENDPOINTS.UPLOAD, targetPath, true)
+  // Build upload URL with path as query parameter
+  const normalizedPath = targetPath.replace(/^\/+|\/+$/g, "")
+  let uploadUrl = BACKEND_ENDPOINTS.API_FILES
+  if (normalizedPath) {
+    uploadUrl += `?path=${encodeURIComponent(normalizedPath)}`
+  }
 
   const response = await fetch(uploadUrl, {
-    method: "POST",
+    method: "PUT",
     body: formData,
     // Don't set Content-Type - browser sets it with boundary
   })
@@ -84,8 +91,12 @@ export function uploadFilesWithProgress(
       formData.append("files", file)
     }
 
-    // Build upload URL with proper path normalization
-    const uploadUrl = buildApiUrl(API_ENDPOINTS.UPLOAD, targetPath, true)
+    // Build upload URL with path as query parameter
+    const normalizedPath = targetPath.replace(/^\/+|\/+$/g, "")
+    let uploadUrl = BACKEND_ENDPOINTS.API_FILES
+    if (normalizedPath) {
+      uploadUrl += `?path=${encodeURIComponent(normalizedPath)}`
+    }
 
     const xhr = new XMLHttpRequest()
 
@@ -124,7 +135,7 @@ export function uploadFilesWithProgress(
       reject({ message: "Upload cancelled" } as AppError)
     })
 
-    xhr.open("POST", uploadUrl)
+    xhr.open("PUT", uploadUrl)
     xhr.send(formData)
   })
 }

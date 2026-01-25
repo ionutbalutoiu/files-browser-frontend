@@ -223,7 +223,8 @@
     // Only handle left click, ignore if on interactive elements
     if (event.button !== 0) return
     const target = event.target as HTMLElement
-    if (target.closest(".move-here-btn") || target.closest(".menu-trigger")) return
+    if (target.closest(".move-here-btn") || target.closest(".menu-trigger"))
+      return
 
     startLongPress(event.clientX, event.clientY)
   }

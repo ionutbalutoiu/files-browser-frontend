@@ -3,30 +3,34 @@
  * Handles renaming files and directories.
  */
 
-import { buildApiUrl, stripSlashes } from "../url"
-import { API_ENDPOINTS } from "../constants"
+import { BACKEND_ENDPOINTS } from "../constants"
 import { fetchWithTimeout } from "./http"
-import type { AppError } from "../types"
+import type { AppError, RenameResult } from "../types"
 
 /**
  * Rename a file or directory.
  * @param oldPath - Full path to file or directory (e.g., "/photos/2026/image.jpg")
  * @param newName - New name for the file or directory (just the name, not full path)
+ * @returns RenameResult with from, to, and success status
  */
 export async function renameFile(
   oldPath: string,
   newName: string,
-): Promise<void> {
+): Promise<RenameResult> {
   // Normalize path: remove leading/trailing slashes
-  const normalizedPath = stripSlashes(oldPath)
+  const normalizedPath = oldPath.replace(/^\/+|\/+$/g, "")
 
-  // Encode the new name for the query parameter
-  const encodedNewName = encodeURIComponent(newName.trim())
-
-  const renameUrl =
-    buildApiUrl(API_ENDPOINTS.RENAME, normalizedPath, true) +
-    `?newName=${encodedNewName}`
-  const response = await fetchWithTimeout(renameUrl, { method: "POST" })
+  // Build rename URL (POST to /files/rename with JSON body)
+  const response = await fetchWithTimeout(BACKEND_ENDPOINTS.API_FILES_RENAME, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      path: normalizedPath,
+      name: newName.trim(),
+    }),
+  })
 
   if (!response.ok) {
     let errorMessage: string
@@ -55,4 +59,7 @@ export async function renameFile(
         throw { message: errorMessage, status: response.status } as AppError
     }
   }
+
+  const result = await response.json()
+  return result as RenameResult
 }

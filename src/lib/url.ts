@@ -93,45 +93,6 @@ export function joinUrl(base: string, ...parts: string[]): string {
 }
 
 /**
- * Build an API endpoint URL with proper path normalization.
- * Ensures the path portion has no double slashes and handles trailing slashes.
- *
- * @param endpoint - The API endpoint (e.g., "/upload", "/delete", "/mkdir")
- * @param path - The resource path to append
- * @param trailingSlash - Whether to ensure a trailing slash (default: false)
- * @returns Properly formatted API URL
- *
- * @example
- * buildApiUrl("/upload", "/", true) => "/upload/"
- * buildApiUrl("/upload", "photos/2026/", true) => "/upload/photos/2026/"
- * buildApiUrl("/delete", "/photos/image.jpg", false) => "/delete/photos/image.jpg"
- */
-export function buildApiUrl(
-  endpoint: string,
-  path: string,
-  trailingSlash: boolean = false,
-): string {
-  // Normalize the endpoint (remove trailing slash for consistent joining)
-  // Add /api prefix to all API endpoints
-  const normalizedEndpoint = "/api" + endpoint.replace(/\/+$/, "")
-
-  // Normalize the path (remove leading slashes to prevent doubles)
-  let normalizedPath = path.replace(/^\/+/, "")
-
-  // Handle trailing slash requirement
-  if (trailingSlash) {
-    normalizedPath = normalizedPath.replace(/\/*$/, "/")
-  }
-
-  // If path is empty or just became "/" from empty, handle appropriately
-  if (!normalizedPath || normalizedPath === "/") {
-    return trailingSlash ? `${normalizedEndpoint}/` : normalizedEndpoint
-  }
-
-  return normalizePath(`${normalizedEndpoint}/${normalizedPath}`)
-}
-
-/**
  * Get the parent directory path.
  * Returns "/" for root-level paths.
  *

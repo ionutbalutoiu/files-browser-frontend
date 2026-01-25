@@ -40,7 +40,7 @@ export async function handleShare(
   try {
     const path = getDeletePath(currentPath, entry.name)
     const result = await sharePublic(path)
-    showToast(`File shared publicly: ${result.shared}`, "success")
+    showToast(`File shared publicly: ${result.path}`, "success")
   } catch (err) {
     const error = err as AppError
     showToast(error.message, "error")

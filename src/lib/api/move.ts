@@ -3,8 +3,8 @@
  * Handles moving files and directories to new locations.
  */
 
-import { buildApiUrl, stripSlashes } from "../url"
-import { API_ENDPOINTS } from "../constants"
+import { stripSlashes } from "../url"
+import { BACKEND_ENDPOINTS } from "../constants"
 import { fetchWithTimeout } from "./http"
 import type { AppError, MoveResult } from "../types"
 
@@ -12,7 +12,7 @@ import type { AppError, MoveResult } from "../types"
  * Move a file or directory to a new location.
  * @param sourcePath - Full path to file or directory to move (e.g., "/photos/image.jpg")
  * @param destPath - Destination path (e.g., "/archive/image.jpg")
- * @returns MoveResult with source, dest, and success status
+ * @returns MoveResult with from, to, and success status
  */
 export async function moveFile(
   sourcePath: string,
@@ -22,14 +22,17 @@ export async function moveFile(
   const normalizedSource = stripSlashes(sourcePath)
   const normalizedDest = stripSlashes(destPath)
 
-  // Encode the destination for the query parameter
-  const encodedDest = encodeURIComponent(normalizedDest)
-
-  const moveUrl =
-    buildApiUrl(API_ENDPOINTS.MV, normalizedSource, false) +
-    `?dest=${encodedDest}`
-
-  const response = await fetchWithTimeout(moveUrl, { method: "POST" })
+  // Build move URL (POST to /api/files/move with JSON body)
+  const response = await fetchWithTimeout(BACKEND_ENDPOINTS.API_FILES_MOVE, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: normalizedSource,
+      to: normalizedDest,
+    }),
+  })
 
   if (!response.ok) {
     let errorMessage: string

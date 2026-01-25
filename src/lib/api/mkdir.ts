@@ -3,8 +3,8 @@
  * Handles creating new directories.
  */
 
-import { buildApiUrl, stripSlashes } from "../url"
-import { API_ENDPOINTS } from "../constants"
+import { stripSlashes } from "../url"
+import { BACKEND_ENDPOINTS } from "../constants"
 import { fetchWithTimeout } from "./http"
 import type { CreateDirectoryResult, AppError } from "../types"
 
@@ -36,11 +36,13 @@ export async function createDirectory(
   const normalizedParent = stripSlashes(parentPath)
   const fullPath = normalizedParent ? `${normalizedParent}/${dirName}` : dirName
 
-  // Build mkdir URL with proper path normalization
-  const mkdirUrl = buildApiUrl(API_ENDPOINTS.MKDIR, fullPath, true)
-
-  const response = await fetchWithTimeout(mkdirUrl, {
+  // Build mkdir URL (POST to /folders with JSON body)
+  const response = await fetchWithTimeout(BACKEND_ENDPOINTS.API_FOLDERS, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ path: fullPath }),
   })
 
   let result: CreateDirectoryResult | { error: string }

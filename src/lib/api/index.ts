@@ -30,7 +30,7 @@ export { moveFile, buildMovePath } from "./move"
 export { createDirectory } from "./mkdir"
 
 // File sharing
-export { sharePublic, listSharePublicFiles, deletePublicShare } from "./share"
+export { listSharePublicFiles, sharePublic, deletePublicShare } from "./share"
 
 // Re-export types for convenience
 export type {
@@ -40,4 +40,5 @@ export type {
   CreateDirectoryResult,
   SharePublicResult,
   MoveResult,
+  RenameResult,
 } from "../types"

@@ -1,77 +1,56 @@
 # Files Browser
 
-> Svelte 5 SPA for browsing Nginx autoindex JSON directory listings.
+Svelte 5 SPA for browsing Nginx autoindex JSON directories.
 
-## Required Reading
+**Read `.claude/rules/frontend.md` before making changes.**
 
-**IMPORTANT**: Before starting any work, read `.claude/rules/frontend.md` for Svelte/TypeScript coding guidelines.
+## Stack
 
----
+Svelte 5 (runes) · TypeScript (strict) · Vite 6 · Pure CSS
 
-## Tech Stack
+## Commands
 
-- Svelte 5 (runes: `$state`, `$derived`, `$props`)
-- TypeScript (strict)
-- Vite 6
-- Pure CSS (no frameworks)
-
-## URL Structure
-
-- App: `/ui/`
-- Files API: `/files/`
-- Hash routing: `/ui/#/path/to/dir/` or `/ui/#/shared`
-
----
-
-## Architecture
-
-```shell
-src/
-├── main.ts              # Entry point
-├── app.css              # Global styles, CSS variables, themes
-├── App.svelte           # Root component, state, routing
-├── lib/
-│   ├── types.ts         # All shared types (NginxEntry, AppError, etc.)
-│   ├── constants.ts     # API endpoints, timeouts, limits
-│   ├── api/             # HTTP layer (barrel export via index.ts)
-│   │   ├── directory.ts # fetchDirectory, getFileUrl, getDirectoryUrl
-│   │   ├── upload.ts    # uploadFilesWithProgress, validateFiles
-│   │   ├── delete.ts    # deleteFile
-│   │   ├── rename.ts    # renameFile
-│   │   ├── mkdir.ts     # createDirectory
-│   │   └── share.ts     # sharePublic, listSharePublicFiles
-│   ├── router.ts        # Hash-based routing
-│   ├── sortFilter.ts    # Sort/filter logic (dirs-first)
-│   ├── format.ts        # formatSize, formatDate
-│   ├── url.ts           # URL encoding utilities
-│   ├── validators.ts    # Input validation
-│   └── stores/
-│       └── toast.svelte.ts  # Toast notification store
-└── components/
-    ├── Breadcrumbs.svelte
-    ├── Toolbar.svelte
-    ├── NewFolderInput.svelte
-    ├── UploadPanel.svelte
-    ├── SharedFilesView.svelte
-    ├── FileTable/           # Barrel export via index.ts
-    │   ├── FileTable.svelte
-    │   ├── FileTableHeader.svelte
-    │   ├── FileTableRow.svelte
-    │   └── ActionMenu.svelte
-    └── shared/              # Barrel export via index.ts
-        ├── ConfirmDialog.svelte
-        ├── EmptyState.svelte
-        ├── ErrorState.svelte
-        ├── LoadingState.svelte
-        ├── Spinner.svelte
-        ├── Toast.svelte
-        ├── ToastContainer.svelte
-        └── InlineNameInput.svelte
+```bash
+npm install && npm run dev    # Development
+npm run build                 # Production → dist/
 ```
 
----
+## URLs
 
-## Key Types (lib/types.ts)
+- App: `/ui/#/path/to/dir/` or `/ui/#/shared`
+- API: `/api/files/`, `/api/folders`, `/api/public-shares`
+
+## Structure
+
+```
+src/
+├── App.svelte           # Root: state, routing, layout
+├── lib/
+│   ├── types.ts         # NginxEntry, AppError, SortState, etc.
+│   ├── constants.ts     # BACKEND_ENDPOINTS, timeouts
+│   ├── api/             # HTTP layer (index.ts barrel)
+│   ├── stores/          # Svelte stores
+│   └── *.ts             # router, format, validators, url, sortFilter
+└── components/
+    ├── FileTable/       # Table, Header, Row, ActionMenu
+    └── shared/          # ConfirmDialog, Toast, Loading/Error/EmptyState
+```
+
+## API Endpoints
+
+| Method | Endpoint                   | Body/Query     |
+| ------ | -------------------------- | -------------- |
+| GET    | `/api/files/{path}`        | -              |
+| PUT    | `/api/files?path=`         | multipart      |
+| DELETE | `/api/files?path=`         | -              |
+| POST   | `/api/files/move`          | `{from, to}`   |
+| POST   | `/api/files/rename`        | `{path, name}` |
+| POST   | `/api/folders`             | `{path}`       |
+| GET    | `/api/public-shares`       | -              |
+| POST   | `/api/public-shares`       | `{path}`       |
+| DELETE | `/api/public-shares?path=` | -              |
+
+## Key Types
 
 ```typescript
 interface NginxEntry {
@@ -80,79 +59,17 @@ interface NginxEntry {
   size?: number
   mtime?: string
 }
-
 interface AppError {
   message: string
   status?: number
-  code?: string
-  cause?: unknown
   notEnabled?: boolean
 }
-
 type SortField = "name" | "size" | "mtime"
-type RouteType = "files" | "shared"
 ```
 
----
+## Patterns
 
-## API Endpoints (lib/constants.ts)
-
-| Endpoint                    | Method | Purpose                  |
-| --------------------------- | ------ | ------------------------ |
-| `/files/{path}`             | GET    | Directory listing (JSON) |
-| `/upload/{path}/`           | POST   | File upload (multipart)  |
-| `/delete/{path}`            | DELETE | Delete file/folder       |
-| `/rename/{path}`            | POST   | Rename file/folder       |
-| `/mkdir/{path}`             | POST   | Create directory         |
-| `/share-public/{path}`      | POST   | Create public share      |
-| `/share-public-files/`      | GET    | List public shares       |
-| `/share-public-delete/{id}` | DELETE | Remove public share      |
-
----
-
-## State (App.svelte)
-
-```typescript
-let currentPath = $state("/")
-let entries = $state<NginxEntry[]>([])
-let loading = $state(true)
-let error = $state<AppError | null>(null)
-let currentView = $state<"files" | "shared">("files")
-let sort = $state<SortState>({ field: "name", direction: "asc" })
-let filter = $state<FilterState>({ search: "" })
-
-let processedEntries = $derived(processEntries(entries, filter, sort))
-```
-
----
-
-## Core Behaviors
-
-- **Sorting**: Directories always first, then sort by field
-- **Filtering**: Case-insensitive substring match on name
-- **Routing**: Hash changes trigger fetches; paths normalized with leading/trailing slashes
-- **Errors**: All API errors use `AppError` type
-
----
-
-## Build Commands
-
-```bash
-npm install
-npm run dev      # Dev server
-npm run build    # Production build → dist/
-npm run preview  # Preview build
-```
-
----
-
-## CSS Variables
-
-Defined in `app.css` `:root`. Dark mode via `@media (prefers-color-scheme: dark)`.
-
-Key variables: `--color-bg`, `--color-text`, `--color-link`, `--color-hover`, `--color-border`, `--color-error`
-
-## Responsive Breakpoints
-
-- 768px: Tablet (hide mtime column, stack toolbar)
-- 480px: Mobile (compact spacing, 44px touch targets)
+- **Sorting**: Directories first, then by field
+- **Routing**: Hash-based, paths normalized with slashes
+- **Errors**: All use `AppError` type
+- **CSS**: Variables in `app.css`, dark mode via `prefers-color-scheme`

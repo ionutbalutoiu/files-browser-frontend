@@ -3,8 +3,8 @@
  * Handles deleting files and empty directories.
  */
 
-import { buildApiUrl, stripSlashes } from "../url"
-import { API_ENDPOINTS } from "../constants"
+import { stripSlashes } from "../url"
+import { BACKEND_ENDPOINTS } from "../constants"
 import { fetchWithTimeout } from "./http"
 import type { AppError } from "../types"
 
@@ -13,8 +13,10 @@ import type { AppError } from "../types"
  * @param path - Full path to file or directory (e.g., "/photos/2026/image.jpg")
  */
 export async function deleteFile(path: string): Promise<void> {
-  // Build delete URL with proper path normalization
-  const deleteUrl = buildApiUrl(API_ENDPOINTS.DELETE, path, false)
+  // Build delete URL with path as query parameter
+  const normalizedPath = stripSlashes(path)
+  const deleteUrl =
+    BACKEND_ENDPOINTS.API_FILES + `?path=${encodeURIComponent(normalizedPath)}`
 
   const response = await fetchWithTimeout(deleteUrl, {
     method: "DELETE",
