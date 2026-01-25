@@ -62,6 +62,8 @@ interface NginxEntry {
 interface AppError {
   message: string
   status?: number
+  code?: string
+  cause?: unknown
   notEnabled?: boolean
 }
 type SortField = "name" | "size" | "mtime"

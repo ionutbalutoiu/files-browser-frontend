@@ -418,7 +418,7 @@
   }
 
   .file-row.selected {
-    background: var(--color-selected-bg, rgba(0, 123, 255, 0.15));
+    background: var(--color-selected-bg);
     box-shadow: inset 3px 0 0 var(--color-link);
   }
 

@@ -183,8 +183,8 @@
   }
 
   .dialog-btn.confirm.danger:hover {
-    background: #c82333;
-    border-color: #c82333;
+    background: var(--color-error-hover);
+    border-color: var(--color-error-hover);
   }
 
   @media (max-width: 480px) {

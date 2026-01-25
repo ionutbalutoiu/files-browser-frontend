@@ -58,9 +58,9 @@
   }
 
   .toast-success {
-    background: var(--color-success-bg, #d4edda);
-    border: 1px solid var(--color-success, #28a745);
-    color: var(--color-success-text, #155724);
+    background: var(--color-success-bg);
+    border: 1px solid var(--color-success);
+    color: var(--color-success-text);
   }
 
   .toast-error {
