@@ -513,6 +513,10 @@
     white-space: nowrap;
   }
 
+  .file-link:hover .file-name {
+    text-decoration: underline;
+  }
+
   .file-path {
     font-size: 0.8rem;
     color: var(--color-muted);

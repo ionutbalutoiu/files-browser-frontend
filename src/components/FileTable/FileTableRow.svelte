@@ -252,28 +252,30 @@
   onclick={handleRowClick}
 >
   <td class="col-name">
-    <span class="icon" aria-hidden="true">{getIcon(entry.type)}</span>
-    {#if isRenaming}
-      <InlineNameInput
-        bind:this={renameInputRef}
-        value={renameValue}
-        disabled={isSubmitting}
-        error={renameError}
-        ariaLabel="New name for {entry.name}"
-        cancelOnBlur={true}
-        onValueChange={onRenameChange}
-        onConfirm={onRenameConfirm}
-        onCancel={onRenameCancel}
-      />
-    {:else}
-      <span class="entry-name">{entry.name}</span>
-    {/if}
-    {#if deleteError}
-      <span class="delete-error" role="alert">{deleteError}</span>
-    {/if}
-    {#if renameError && !isRenaming}
-      <span class="rename-error" role="alert">{renameError}</span>
-    {/if}
+    <div class="name-content">
+      <span class="icon" aria-hidden="true">{getIcon(entry.type)}</span>
+      {#if isRenaming}
+        <InlineNameInput
+          bind:this={renameInputRef}
+          value={renameValue}
+          disabled={isSubmitting}
+          error={renameError}
+          ariaLabel="New name for {entry.name}"
+          cancelOnBlur={true}
+          onValueChange={onRenameChange}
+          onConfirm={onRenameConfirm}
+          onCancel={onRenameCancel}
+        />
+      {:else}
+        <span class="entry-name">{entry.name}</span>
+      {/if}
+      {#if deleteError}
+        <span class="delete-error" role="alert">{deleteError}</span>
+      {/if}
+      {#if renameError && !isRenaming}
+        <span class="rename-error" role="alert">{renameError}</span>
+      {/if}
+    </div>
   </td>
   <td class="col-size">
     {entry.type === "directory" ? "—" : formatSize(entry.size)}
@@ -389,14 +391,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     border: 1px solid var(--color-link);
     border-radius: 4px;
     background: transparent;
     color: var(--color-link);
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     transition:
@@ -427,10 +429,13 @@
   }
 
   .col-name {
+    min-width: 200px;
+  }
+
+  .name-content {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    min-width: 200px;
     flex-wrap: wrap;
   }
 
@@ -444,7 +449,7 @@
     word-break: break-word;
   }
 
-  .file-row:hover .entry-name {
+  .file-row:not(.selection-mode):hover .entry-name {
     text-decoration: underline;
   }
 
@@ -472,6 +477,8 @@
     width: 48px;
     text-align: center;
     padding: 0.4rem;
+    height: 32px;
+    box-sizing: content-box;
   }
 
   .action-menu {
@@ -547,8 +554,13 @@
       min-width: 150px;
     }
 
+    .name-content {
+      gap: 0.5rem;
+    }
+
     .col-actions {
       width: 40px;
+      height: 40px;
     }
   }
 
@@ -559,6 +571,9 @@
 
     .col-name {
       min-width: 120px;
+    }
+
+    .name-content {
       gap: 0.4rem;
     }
 
@@ -575,7 +590,12 @@
       min-height: 44px;
     }
 
-    .menu-trigger {
+    .col-actions {
+      height: 40px;
+    }
+
+    .menu-trigger,
+    .move-here-btn {
       width: 40px;
       height: 40px;
     }
