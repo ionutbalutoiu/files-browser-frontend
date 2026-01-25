@@ -163,29 +163,30 @@
     onDrop(entry)
   }
 
-  // Long press handling for mobile
+  // Long press handling for mobile and desktop
   const LONG_PRESS_DURATION = 500
   let longPressTimer: ReturnType<typeof setTimeout> | null = null
-  let touchStartPos = { x: 0, y: 0 }
+  let pressStartPos = { x: 0, y: 0 }
+  let longPressTriggered = false
 
-  function handleTouchStart(event: TouchEvent) {
+  function startLongPress(clientX: number, clientY: number) {
     if (isParentEntry || isSelectionMode || isRenaming || isDeleting) return
 
-    const touch = event.touches[0]
-    touchStartPos = { x: touch.clientX, y: touch.clientY }
+    pressStartPos = { x: clientX, y: clientY }
+    longPressTriggered = false
 
     longPressTimer = setTimeout(() => {
+      longPressTriggered = true
       onLongPress?.(entry)
       longPressTimer = null
     }, LONG_PRESS_DURATION)
   }
 
-  function handleTouchMove(event: TouchEvent) {
+  function moveLongPress(clientX: number, clientY: number) {
     if (!longPressTimer) return
 
-    const touch = event.touches[0]
-    const dx = touch.clientX - touchStartPos.x
-    const dy = touch.clientY - touchStartPos.y
+    const dx = clientX - pressStartPos.x
+    const dy = clientY - pressStartPos.y
     const distance = Math.sqrt(dx * dx + dy * dy)
 
     // Cancel long press if moved too much
@@ -195,14 +196,53 @@
     }
   }
 
-  function handleTouchEnd() {
+  function endLongPress() {
     if (longPressTimer) {
       clearTimeout(longPressTimer)
       longPressTimer = null
     }
   }
 
+  // Touch event handlers
+  function handleTouchStart(event: TouchEvent) {
+    const touch = event.touches[0]
+    startLongPress(touch.clientX, touch.clientY)
+  }
+
+  function handleTouchMove(event: TouchEvent) {
+    const touch = event.touches[0]
+    moveLongPress(touch.clientX, touch.clientY)
+  }
+
+  function handleTouchEnd() {
+    endLongPress()
+  }
+
+  // Mouse event handlers for desktop long press
+  function handleMouseDown(event: MouseEvent) {
+    // Only handle left click, ignore if on interactive elements
+    if (event.button !== 0) return
+    const target = event.target as HTMLElement
+    if (target.closest(".move-here-btn") || target.closest(".menu-trigger")) return
+
+    startLongPress(event.clientX, event.clientY)
+  }
+
+  function handleMouseMove(event: MouseEvent) {
+    moveLongPress(event.clientX, event.clientY)
+  }
+
+  function handleMouseUp() {
+    endLongPress()
+  }
+
   function handleRowClick(event: MouseEvent) {
+    // Don't handle if long press was just triggered
+    if (longPressTriggered) {
+      longPressTriggered = false
+      return
+    }
+
     // Don't handle if clicking on interactive elements
     const target = event.target as HTMLElement
     if (target.closest(".move-here-btn") || target.closest(".menu-trigger"))
@@ -249,6 +289,10 @@
   ontouchmove={handleTouchMove}
   ontouchend={handleTouchEnd}
   ontouchcancel={handleTouchEnd}
+  onmousedown={handleMouseDown}
+  onmousemove={handleMouseMove}
+  onmouseup={handleMouseUp}
+  onmouseleave={handleMouseUp}
   onclick={handleRowClick}
 >
   <td class="col-name">
