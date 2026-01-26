@@ -131,32 +131,34 @@
 
 <div class="app">
   <header class="header">
-    <div class="header-top">
-      <h1 class="title">📂 Files Browser</h1>
-      <nav class="nav-links">
-        <button
-          type="button"
-          class="nav-link"
-          class:active={currentView === "files"}
-          onclick={() => navigateTo("/")}
-        >
-          <span class="nav-icon" aria-hidden="true">📁</span>
-          <span class="nav-text">Browse</span>
-        </button>
-        <button
-          type="button"
-          class="nav-link"
-          class:active={currentView === "shared"}
-          onclick={navigateToShared}
-        >
-          <span class="nav-icon" aria-hidden="true">🔗</span>
-          <span class="nav-text">Public Shares</span>
-        </button>
-      </nav>
+    <div class="header-inner">
+      <div class="header-top">
+        <h1 class="title">📂 Files Browser</h1>
+        <nav class="nav-links">
+          <button
+            type="button"
+            class="nav-link"
+            class:active={currentView === "files"}
+            onclick={() => navigateTo("/")}
+          >
+            <span class="nav-icon" aria-hidden="true">📁</span>
+            <span class="nav-text">Browse</span>
+          </button>
+          <button
+            type="button"
+            class="nav-link"
+            class:active={currentView === "shared"}
+            onclick={navigateToShared}
+          >
+            <span class="nav-icon" aria-hidden="true">🔗</span>
+            <span class="nav-text">Public Shares</span>
+          </button>
+        </nav>
+      </div>
+      {#if currentView === "files"}
+        <Breadcrumbs path={currentPath} onNavigate={handleNavigate} />
+      {/if}
     </div>
-    {#if currentView === "files"}
-      <Breadcrumbs path={currentPath} onNavigate={handleNavigate} />
-    {/if}
   </header>
 
   <main class="main">
@@ -237,9 +239,16 @@
   }
 
   .header {
-    padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-header-bg);
+  }
+
+  .header-inner {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 1rem 1.5rem;
+    box-sizing: border-box;
   }
 
   .header-top {
@@ -324,7 +333,7 @@
 
   /* Tablet breakpoint */
   @media (max-width: 768px) {
-    .header {
+    .header-inner {
       padding: 0.75rem 1rem;
     }
 
@@ -339,7 +348,7 @@
 
   /* Mobile breakpoint */
   @media (max-width: 480px) {
-    .header {
+    .header-inner {
       padding: 0.6rem 0.75rem;
     }
 
