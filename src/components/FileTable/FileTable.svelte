@@ -231,6 +231,7 @@
 
     let successCount = 0
     let errorCount = 0
+    let lastErrorMessage = ""
 
     for (const itemName of itemsToMove) {
       const sourcePath = buildMovePath(currentPath, itemName)
@@ -239,8 +240,12 @@
       try {
         await moveFile(sourcePath, destPath)
         successCount++
-      } catch {
+      } catch (error) {
         errorCount++
+        if (error && typeof error === "object" && "message" in error) {
+          const msg = (error as { message: string }).message
+          lastErrorMessage = msg.charAt(0).toUpperCase() + msg.slice(1)
+        }
       }
     }
 
@@ -255,7 +260,7 @@
         "error",
       )
     } else {
-      showToast("Move failed", "error")
+      showToast(lastErrorMessage || "Move failed", "error")
     }
 
     onRefresh()
