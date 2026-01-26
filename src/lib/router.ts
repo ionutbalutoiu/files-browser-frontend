@@ -45,8 +45,8 @@ export function getCurrentPath(): string {
     return "/"
   }
 
-  // Decode the path segments
-  let path = hash
+  // Decode the path from URL encoding
+  let path = decodeURIComponent(hash)
 
   // Ensure leading slash
   if (!path.startsWith("/")) {
