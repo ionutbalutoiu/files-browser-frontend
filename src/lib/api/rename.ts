@@ -4,6 +4,7 @@
  */
 
 import { BACKEND_ENDPOINTS } from "../constants"
+import { capitalize } from "../format"
 import { fetchWithTimeout } from "./http"
 import type { AppError, RenameResult } from "../types"
 
@@ -42,7 +43,7 @@ export async function renameFile(
       errorMessage = `Rename failed: ${response.status}`
     }
 
-    // Map status codes to user-friendly messages
+    // Map status codes to user-friendly messages, using server message when available
     switch (response.status) {
       case 404:
         throw { message: "File not found", status: 404 } as AppError
@@ -53,10 +54,11 @@ export async function renameFile(
         } as AppError
       case 400:
         throw { message: "Invalid name", status: 400 } as AppError
-      case 403:
-        throw { message: "Cannot rename this path", status: 403 } as AppError
       default:
-        throw { message: errorMessage, status: response.status } as AppError
+        throw {
+          message: capitalize(errorMessage),
+          status: response.status,
+        } as AppError
     }
   }
 

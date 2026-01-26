@@ -5,6 +5,7 @@
 
 import { stripSlashes } from "../url"
 import { BACKEND_ENDPOINTS } from "../constants"
+import { capitalize } from "../format"
 import { fetchWithTimeout } from "./http"
 import type { AppError, MoveResult } from "../types"
 
@@ -35,13 +36,11 @@ export async function moveFile(
   })
 
   if (!response.ok) {
-    let serverError: string | undefined
     let errorMessage: string
 
     try {
       const result = await response.json()
-      serverError = result.error
-      errorMessage = serverError || `Move failed: ${response.status}`
+      errorMessage = result.error || `Move failed: ${response.status}`
     } catch {
       errorMessage = `Move failed: ${response.status}`
     }
@@ -57,13 +56,11 @@ export async function moveFile(
         } as AppError
       case 400:
         throw { message: "Invalid move operation", status: 400 } as AppError
-      case 403:
-        throw {
-          message: serverError || "Cannot move to this location",
-          status: 403,
-        } as AppError
       default:
-        throw { message: errorMessage, status: response.status } as AppError
+        throw {
+          message: capitalize(errorMessage),
+          status: response.status,
+        } as AppError
     }
   }
 
