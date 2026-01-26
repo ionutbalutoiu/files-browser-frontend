@@ -133,7 +133,13 @@
   <header class="header">
     <div class="header-inner">
       <div class="header-top">
-        <h1 class="title">📂 Files Browser</h1>
+        <button
+          type="button"
+          class="title nav-link"
+          onclick={() => navigateTo("/")}
+        >
+          📂 Files Browser
+        </button>
         <nav class="nav-links">
           <button
             type="button"
@@ -259,13 +265,6 @@
     margin-bottom: 0.5rem;
   }
 
-  .title {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
   .nav-links {
     display: flex;
     gap: 0.25rem;
@@ -300,6 +299,12 @@
   .nav-link:focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
+  }
+
+  .title.nav-link {
+    font-size: 1.5rem !important;
+    font-weight: 600;
+    color: var(--color-text);
   }
 
   .nav-icon {
