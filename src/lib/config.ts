@@ -5,8 +5,10 @@
 /**
  * Base URL for publicly shared files.
  * This is used to construct the full public URL when copying share links.
+ * Configurable via VITE_PUBLIC_BASE_URL environment variable.
  */
-export const PUBLIC_BASE_URL = "https://files.balutoiu.com"
+export const PUBLIC_BASE_URL =
+  import.meta.env.VITE_PUBLIC_BASE_URL || "https://files.balutoiu.com"
 
 /**
  * Get the full public URL for a shared file.
