@@ -124,3 +124,21 @@ export interface RenameResult {
   to: string
   success: boolean
 }
+
+// =============================================================================
+// Runtime Configuration Types
+// =============================================================================
+
+/**
+ * Runtime configuration injected via window.__APP_CONFIG__.
+ * These values can be set at container startup via environment variables.
+ */
+export interface RuntimeConfig {
+  publicBaseUrl?: string
+}
+
+declare global {
+  interface Window {
+    __APP_CONFIG__?: RuntimeConfig
+  }
+}

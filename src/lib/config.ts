@@ -2,13 +2,34 @@
  * Global configuration for the files browser.
  */
 
+// Import RuntimeConfig type for window augmentation
+import type { RuntimeConfig as _RuntimeConfig } from "./types"
+
+/**
+ * Get the public base URL with runtime override support.
+ * Fallback chain (priority order):
+ * 1. window.__APP_CONFIG__.publicBaseUrl (runtime - container env var)
+ * 2. import.meta.env.VITE_PUBLIC_BASE_URL (build-time - backwards compatible)
+ * 3. "https://files.balutoiu.com" (hardcoded default)
+ */
+function getPublicBaseUrl(): string {
+  if (typeof window !== "undefined" && window.__APP_CONFIG__?.publicBaseUrl) {
+    return window.__APP_CONFIG__.publicBaseUrl
+  }
+  if (import.meta.env.VITE_PUBLIC_BASE_URL) {
+    return import.meta.env.VITE_PUBLIC_BASE_URL
+  }
+  return "https://files.balutoiu.com"
+}
+
 /**
  * Base URL for publicly shared files.
  * This is used to construct the full public URL when copying share links.
- * Configurable via VITE_PUBLIC_BASE_URL environment variable.
+ * Configurable via:
+ * - Runtime: PUBLIC_BASE_URL env var at container startup
+ * - Build-time: VITE_PUBLIC_BASE_URL env var
  */
-export const PUBLIC_BASE_URL =
-  import.meta.env.VITE_PUBLIC_BASE_URL || "https://files.balutoiu.com"
+export const PUBLIC_BASE_URL = getPublicBaseUrl()
 
 /**
  * Get the full public URL for a shared file.
