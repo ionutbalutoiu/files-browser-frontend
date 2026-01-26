@@ -50,9 +50,14 @@ export function getIsSubmitting(): boolean {
 
 /**
  * Update the rename input value.
+ * Clears any existing error so user can retry.
  */
 export function setRenameValue(value: string): void {
   renameValue = value
+  // Clear error when user starts typing again
+  if (renameError) {
+    renameError = null
+  }
 }
 
 /**

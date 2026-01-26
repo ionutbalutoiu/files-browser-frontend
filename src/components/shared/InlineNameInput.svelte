@@ -25,6 +25,19 @@
 
   let inputRef = $state<HTMLInputElement | null>(null)
   let containerRef = $state<HTMLDivElement | null>(null)
+  let blurTimeoutId = $state<ReturnType<typeof setTimeout> | null>(null)
+
+  // Cancel any pending blur timeout when error is set, and refocus the input
+  $effect(() => {
+    if (error && blurTimeoutId) {
+      clearTimeout(blurTimeoutId)
+      blurTimeoutId = null
+    }
+    // Refocus input when error is set and submission is complete
+    if (error && !disabled) {
+      inputRef?.focus()
+    }
+  })
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === "Enter") {
@@ -54,12 +67,34 @@
     if (relatedTarget && containerRef?.contains(relatedTarget)) {
       return
     }
+
+    // Clear any existing timeout
+    if (blurTimeoutId) {
+      clearTimeout(blurTimeoutId)
+    }
+
     // Delay to allow click events on buttons to fire first
-    setTimeout(() => {
-      if (!disabled) {
+    blurTimeoutId = setTimeout(() => {
+      blurTimeoutId = null
+      // Don't cancel if disabled (submitting) or if there's an error
+      if (!disabled && !error) {
         onCancel()
       }
     }, 150)
+  }
+
+  function handleConfirmClick(event: MouseEvent) {
+    event.stopPropagation()
+    onConfirm()
+  }
+
+  function handleCancelClick(event: MouseEvent) {
+    event.stopPropagation()
+    onCancel()
+  }
+
+  function handleInputClick(event: MouseEvent) {
+    event.stopPropagation()
   }
 
   export function focus() {
@@ -84,6 +119,7 @@
       {value}
       {placeholder}
       {disabled}
+      onclick={handleInputClick}
       oninput={handleInput}
       onkeydown={handleKeydown}
       onblur={handleBlur}
@@ -94,7 +130,7 @@
       <button
         type="button"
         class="action-btn confirm"
-        onclick={onConfirm}
+        onclick={handleConfirmClick}
         disabled={disabled || !value.trim()}
         aria-label="Confirm"
       >
@@ -103,7 +139,7 @@
       <button
         type="button"
         class="action-btn cancel"
-        onclick={onCancel}
+        onclick={handleCancelClick}
         {disabled}
         aria-label="Cancel"
       >
