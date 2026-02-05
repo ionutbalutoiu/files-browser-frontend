@@ -142,9 +142,15 @@ export function uploadFilesWithProgress(
 
 /**
  * Validate files before upload (client-side).
+ * @param files - Files to validate
+ * @param existingNames - Names of files/folders already in the target directory
  */
-export function validateFiles(files: FileList | File[]): string[] {
+export function validateFiles(
+  files: FileList | File[],
+  existingNames?: ReadonlyArray<string>,
+): string[] {
   const errors: string[] = []
+  const existingSet = existingNames ? new Set(existingNames) : null
 
   for (const file of files) {
     if (file.size > MAX_FILE_SIZE) {
@@ -152,6 +158,9 @@ export function validateFiles(files: FileList | File[]): string[] {
     }
     if (file.name.startsWith(".")) {
       errors.push(`${file.name}: hidden files not allowed`)
+    }
+    if (existingSet?.has(file.name)) {
+      errors.push(`${file.name}: file already exists in this folder`)
     }
   }
 

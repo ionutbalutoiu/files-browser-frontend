@@ -188,6 +188,7 @@
         <div id="upload-panel">
           <UploadPanel
             {currentPath}
+            existingNames={entries.map((e) => e.name)}
             onUploadComplete={handleUploadComplete}
             onClose={toggleUpload}
           />

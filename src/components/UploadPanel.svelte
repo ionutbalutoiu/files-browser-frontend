@@ -9,11 +9,13 @@
 
   interface Props {
     currentPath: string
+    existingNames: ReadonlyArray<string>
     onUploadComplete: () => void
     onClose: () => void
   }
 
-  let { currentPath, onUploadComplete, onClose }: Props = $props()
+  let { currentPath, existingNames, onUploadComplete, onClose }: Props =
+    $props()
 
   // State
   let files = $state<File[]>([])
@@ -59,7 +61,7 @@
     files = newFiles
     result = null
     error = null
-    validationErrors = validateFiles(newFiles)
+    validationErrors = validateFiles(newFiles, existingNames)
   }
 
   function clearFiles() {
