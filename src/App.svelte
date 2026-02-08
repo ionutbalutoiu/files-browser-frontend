@@ -4,11 +4,16 @@
     initRouter,
     onRouteChange,
     navigateTo,
-    getCurrentPath,
     isSharedRoute,
     navigateToShared,
   } from "./lib/router"
-  import { fetchDirectory } from "./lib/api"
+  import {
+    fetchDirectory,
+    uploadFilesInParallelWithProgress,
+    validateFiles,
+    formatTotalSize,
+  } from "./lib/api"
+  import type { ParallelUploadFileProgress } from "./lib/api"
   import {
     processEntries,
     toggleSort,
@@ -26,7 +31,7 @@
   import Breadcrumbs from "./components/Breadcrumbs.svelte"
   import Toolbar from "./components/Toolbar.svelte"
   import { FileTable } from "./components/FileTable"
-  import UploadPanel from "./components/UploadPanel.svelte"
+  import UploadStatus from "./components/UploadStatus.svelte"
   import SharedFilesView from "./components/SharedFilesView.svelte"
   import { LoadingState, ErrorState, ToastContainer } from "./components/shared"
 
@@ -43,8 +48,35 @@
   let sort = $state<SortState>({ ...DEFAULT_SORT })
   let filter = $state<FilterState>({ ...DEFAULT_FILTER })
 
-  // Upload panel visibility
-  let showUpload = $state(false)
+  type UploadStatusState =
+    | "uploading"
+    | "success"
+    | "partial"
+    | "error"
+    | "validation"
+  type UploadUiState = "hidden" | UploadStatusState
+
+  let uploadInput = $state<HTMLInputElement | null>(null)
+  let uploadState = $state<UploadUiState>("hidden")
+  let uploadProgress = $state(0)
+  let uploadTargetPath = $state("/")
+  let uploadTotalFiles = $state(0)
+  let uploadTotalSize = $state("0 B")
+  let uploadUploaded = $state<string[]>([])
+  let uploadSkipped = $state<string[]>([])
+  let uploadErrors = $state<string[]>([])
+  let uploadValidationErrors = $state<string[]>([])
+  let uploadFileProgress = $state<ParallelUploadFileProgress[]>([])
+  let uploadCompletedCount = $state(0)
+  let uploadFailedCount = $state(0)
+  let uploadRemainingCount = $state(0)
+  let uploadTotalCount = $state(0)
+  let uploadInProgress = $derived(uploadState === "uploading")
+  let visibleUploadState = $derived(
+    uploadState === "hidden" ? null : uploadState,
+  )
+
+  const UPLOAD_CONCURRENCY = 2
 
   // Selection mode state
   let isSelectionMode = $state(false)
@@ -91,14 +123,116 @@
     filter = { search }
   }
 
-  // Toggle upload panel
-  function toggleUpload() {
-    showUpload = !showUpload
+  function clearUploadFeedback() {
+    uploadState = "hidden"
+    uploadProgress = 0
+    uploadTotalFiles = 0
+    uploadTotalSize = "0 B"
+    uploadUploaded = []
+    uploadSkipped = []
+    uploadErrors = []
+    uploadValidationErrors = []
+    uploadFileProgress = []
+    uploadCompletedCount = 0
+    uploadFailedCount = 0
+    uploadRemainingCount = 0
+    uploadTotalCount = 0
   }
 
-  // Refresh after upload
-  function handleUploadComplete() {
-    loadDirectory(currentPath)
+  function dismissUploadStatus() {
+    if (uploadState === "uploading") return
+    clearUploadFeedback()
+  }
+
+  function openUploadPicker() {
+    if (uploadState === "uploading") return
+    uploadInput?.click()
+  }
+
+  async function handleUploadSelection(event: Event) {
+    const input = event.target as HTMLInputElement
+    if (!input.files || input.files.length === 0) return
+
+    const selectedFiles = Array.from(input.files)
+    input.value = ""
+
+    const targetPath = currentPath
+
+    uploadTargetPath = targetPath || "/"
+    uploadTotalFiles = selectedFiles.length
+    uploadTotalSize = formatTotalSize(selectedFiles)
+    uploadProgress = 0
+    uploadUploaded = []
+    uploadSkipped = []
+    uploadErrors = []
+    uploadValidationErrors = []
+    uploadFileProgress = selectedFiles.map((file) => ({
+      name: file.name,
+      percent: 0,
+      status: "queued",
+    }))
+    uploadCompletedCount = 0
+    uploadFailedCount = 0
+    uploadRemainingCount = selectedFiles.length
+    uploadTotalCount = selectedFiles.length
+
+    // Existing-name conflicts are handled server-side so queue can continue.
+    const validationMessages = validateFiles(selectedFiles)
+
+    if (validationMessages.length > 0) {
+      uploadState = "validation"
+      uploadValidationErrors = validationMessages
+      return
+    }
+
+    uploadState = "uploading"
+
+    try {
+      const result = await uploadFilesInParallelWithProgress(
+        selectedFiles,
+        targetPath,
+        {
+          concurrency: UPLOAD_CONCURRENCY,
+          onProgress: (progress) => {
+            uploadProgress = progress.percent
+            uploadCompletedCount = progress.completed
+            uploadFailedCount = progress.failed
+            uploadRemainingCount = progress.remaining
+            uploadTotalCount = progress.total
+            uploadFileProgress = progress.files
+          },
+        },
+      )
+
+      uploadUploaded = result.uploaded
+      uploadSkipped = result.skipped
+      uploadErrors = result.errors ?? []
+
+      if (uploadUploaded.length === 0 && uploadErrors.length > 0) {
+        uploadState = "error"
+      } else if (uploadSkipped.length > 0 || uploadErrors.length > 0) {
+        uploadState = "partial"
+      } else {
+        uploadState = "success"
+      }
+
+      // Refresh only when still viewing the same directory.
+      if (currentView === "files" && currentPath === targetPath) {
+        await loadDirectory(targetPath)
+      }
+    } catch (e) {
+      uploadState = "error"
+      uploadErrors = [(e as AppError).message]
+      uploadFileProgress = selectedFiles.map((file) => ({
+        name: file.name,
+        percent: 100,
+        status: "error",
+        message: (e as AppError).message,
+      }))
+      uploadCompletedCount = 0
+      uploadFailedCount = selectedFiles.length
+      uploadRemainingCount = 0
+    }
   }
 
   // Initialize on mount
@@ -174,25 +308,44 @@
       <Toolbar
         search={filter.search}
         {sort}
-        {showUpload}
+        {uploadInProgress}
         {currentPath}
         selectedCount={selectedEntries.size}
         onSearchChange={handleSearchChange}
         onSortChange={handleSortChange}
-        onUploadToggle={toggleUpload}
+        onUploadClick={openUploadPicker}
         onDirectoryCreated={() => loadDirectory(currentPath)}
         onCancelSelection={cancelSelectionMode}
       />
 
-      {#if showUpload}
-        <div id="upload-panel">
-          <UploadPanel
-            {currentPath}
-            existingNames={entries.map((e) => e.name)}
-            onUploadComplete={handleUploadComplete}
-            onClose={toggleUpload}
-          />
-        </div>
+      <input
+        bind:this={uploadInput}
+        type="file"
+        multiple
+        class="visually-hidden"
+        tabindex="-1"
+        aria-hidden="true"
+        onchange={handleUploadSelection}
+      />
+
+      {#if visibleUploadState}
+        <UploadStatus
+          state={visibleUploadState}
+          progress={uploadProgress}
+          totalFiles={uploadTotalFiles}
+          totalSize={uploadTotalSize}
+          targetPath={uploadTargetPath}
+          uploaded={uploadUploaded}
+          skipped={uploadSkipped}
+          errors={uploadErrors}
+          validationErrors={uploadValidationErrors}
+          fileProgress={uploadFileProgress}
+          completedCount={uploadCompletedCount}
+          failedCount={uploadFailedCount}
+          remainingCount={uploadRemainingCount}
+          totalCount={uploadTotalCount}
+          onDismiss={dismissUploadStatus}
+        />
       {/if}
 
       {#if loading}

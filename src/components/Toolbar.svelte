@@ -5,12 +5,12 @@
   interface Props {
     search: string
     sort: SortState
-    showUpload: boolean
+    uploadInProgress: boolean
     currentPath: string
     selectedCount: number
     onSearchChange: (search: string) => void
     onSortChange: (field: SortField) => void
-    onUploadToggle: () => void
+    onUploadClick: () => void
     onDirectoryCreated: () => void
     onCancelSelection: () => void
   }
@@ -18,12 +18,12 @@
   let {
     search,
     sort,
-    showUpload,
+    uploadInProgress,
     currentPath,
     selectedCount,
     onSearchChange,
     onSortChange,
-    onUploadToggle,
+    onUploadClick,
     onDirectoryCreated,
     onCancelSelection,
   }: Props = $props()
@@ -128,15 +128,14 @@
       <button
         type="button"
         class="upload-button"
-        class:active={showUpload}
-        onclick={onUploadToggle}
-        aria-expanded={showUpload}
-        aria-controls="upload-panel"
+        onclick={onUploadClick}
+        disabled={uploadInProgress}
+        aria-busy={uploadInProgress}
       >
-        <span class="upload-icon" aria-hidden="true"
-          >{showUpload ? "✕" : "↑"}</span
+        <span class="upload-icon" aria-hidden="true">↑</span>
+        <span class="upload-text"
+          >{uploadInProgress ? "Uploading..." : "Upload"}</span
         >
-        <span class="upload-text">{showUpload ? "Close" : "Upload"}</span>
       </button>
     {/if}
   </div>
@@ -295,7 +294,7 @@
     white-space: nowrap;
   }
 
-  .upload-button:hover {
+  .upload-button:hover:not(:disabled) {
     opacity: 0.9;
   }
 
@@ -304,15 +303,9 @@
     outline-offset: 2px;
   }
 
-  .upload-button.active {
-    background: var(--color-bg);
-    color: var(--color-text);
-    border-color: var(--color-border);
-  }
-
-  .upload-button.active:hover {
-    background: var(--color-hover);
-    opacity: 1;
+  .upload-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .upload-icon {

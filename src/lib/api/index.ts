@@ -13,8 +13,14 @@ export { fetchDirectory, getFileUrl, getDirectoryUrl } from "./directory"
 export {
   uploadFiles,
   uploadFilesWithProgress,
+  uploadFilesInParallelWithProgress,
   validateFiles,
   formatTotalSize,
+} from "./upload"
+export type {
+  ParallelUploadProgress,
+  ParallelUploadOptions,
+  ParallelUploadFileProgress,
 } from "./upload"
 
 // File deletion
