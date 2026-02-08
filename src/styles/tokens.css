@@ -1,0 +1,122 @@
+/* ===================================
+   CSS Variables - Light Mode (default)
+   =================================== */
+
+:root {
+  /* Base colors */
+  --color-bg: #ffffff;
+  --color-header-bg: #fafbfc;
+  --color-text: #1f2328;
+  --color-muted: #656d76;
+
+  /* Interactive */
+  --color-link: #0969da;
+  --color-hover: #f3f4f6;
+  --color-active: #ddf4ff;
+  --color-active-border: #54aeff;
+
+  /* Borders */
+  --color-border: #d0d7de;
+  --color-border-light: #eaeef2;
+  --color-border-hover: #8c959f;
+
+  /* Focus */
+  --color-focus: #0969da;
+  --color-focus-ring: rgba(9, 105, 218, 0.3);
+
+  /* Inputs */
+  --color-input-bg: #ffffff;
+
+  /* Error */
+  --color-error: #cf222e;
+  --color-error-bg: #ffebe9;
+  --color-error-hover: #b91c28;
+
+  /* Success */
+  --color-success: #28a745;
+  --color-success-bg: #d4edda;
+  --color-success-text: #155724;
+
+  /* Warning */
+  --color-warning: #e08a00;
+  --color-warning-bg: #fff3cd;
+  --color-warning-text: #664d03;
+
+  /* Info */
+  --color-info: #0969da;
+  --color-info-bg: #ddf4ff;
+  --color-info-text: #0550ae;
+
+  /* Selection */
+  --color-selected-bg: rgba(9, 105, 218, 0.15);
+
+  /* Elevation shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+/* ===================================
+   CSS Variables - Dark Mode
+   =================================== */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Base colors */
+    --color-bg: #0d1117;
+    --color-header-bg: #161b22;
+    --color-text: #e6edf3;
+    --color-muted: #8b949e;
+
+    /* Interactive */
+    --color-link: #58a6ff;
+    --color-hover: #21262d;
+    --color-active: #1f3a54;
+    --color-active-border: #58a6ff;
+
+    /* Borders */
+    --color-border: #30363d;
+    --color-border-light: #21262d;
+    --color-border-hover: #6e7681;
+
+    /* Focus */
+    --color-focus: #58a6ff;
+    --color-focus-ring: rgba(88, 166, 255, 0.3);
+
+    /* Inputs */
+    --color-input-bg: #0d1117;
+
+    /* Error */
+    --color-error: #f85149;
+    --color-error-bg: #3d1f20;
+    --color-error-hover: #da3633;
+
+    /* Success */
+    --color-success: #3fb950;
+    --color-success-bg: #1f3d2a;
+    --color-success-text: #7ee787;
+
+    /* Warning */
+    --color-warning: #d29922;
+    --color-warning-bg: #3d2e12;
+    --color-warning-text: #e3b341;
+
+    /* Info */
+    --color-info: #58a6ff;
+    --color-info-bg: #1f3a54;
+    --color-info-text: #79c0ff;
+
+    /* Selection */
+    --color-selected-bg: rgba(88, 166, 255, 0.15);
+  }
+}

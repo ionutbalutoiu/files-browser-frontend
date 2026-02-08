@@ -4,6 +4,8 @@
   import { getFileUrl, getDirectoryUrl } from "../../lib/api"
   import { getParentPath } from "../../lib/url"
   import InlineNameInput from "../shared/InlineNameInput.svelte"
+  import FileRowActions from "./FileRowActions.svelte"
+  import FileRowStatusMessages from "./FileRowStatusMessages.svelte"
 
   interface Props {
     entry: NginxEntry
@@ -67,12 +69,18 @@
 
   let renameInputRef: ReturnType<typeof InlineNameInput> | null = $state(null)
 
+  let showMoveHere = $derived(isSelectionMode && entry.type === "directory")
+  let showMenu = $derived(!isParentEntry && !isSelectionMode)
+  let moveHereLabel = $derived(
+    `Move selected items to ${isParentEntry ? "parent folder" : entry.name}`,
+  )
+  let menuAriaLabel = $derived(`Actions for ${entry.name}`)
+
   function getIcon(type: "file" | "directory"): string {
     return type === "directory" ? "📁" : "📄"
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    // Don't handle navigation keys when renaming
     if (isRenaming) return
 
     if (event.key === "Enter" || event.key === " ") {
@@ -89,13 +97,16 @@
     }
   }
 
+  function handleMenuToggle(event: MouseEvent) {
+    onMenuToggle(entry.name, event)
+  }
+
   function handleMenuKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
       onMenuToggle(entry.name, event as unknown as MouseEvent)
     }
   }
 
-  // Focus input when rename mode activates
   $effect(() => {
     if (isRenaming && renameInputRef) {
       renameInputRef.focus()
@@ -112,12 +123,12 @@
     }
   })
 
-  // Drag and drop handlers
   function handleDragStart(event: DragEvent) {
     if (isRenaming || isDeleting || isParentEntry) {
       event.preventDefault()
       return
     }
+
     event.dataTransfer?.setData("text/plain", entry.name)
     event.dataTransfer!.effectAllowed = "move"
     onDragStart(entry)
@@ -128,7 +139,6 @@
   }
 
   function handleDragOver(event: DragEvent) {
-    // Only directories can be drop targets
     if (entry.type !== "directory") return
 
     event.preventDefault()
@@ -136,7 +146,6 @@
   }
 
   function handleDragEnter(event: DragEvent) {
-    // Only directories can be drop targets
     if (entry.type !== "directory") return
 
     event.preventDefault()
@@ -144,10 +153,8 @@
   }
 
   function handleDragLeave(event: DragEvent) {
-    // Only directories can be drop targets
     if (entry.type !== "directory") return
 
-    // Check if we're leaving to a child element (ignore those)
     const relatedTarget = event.relatedTarget as HTMLElement | null
     const currentTarget = event.currentTarget as HTMLElement
     if (relatedTarget && currentTarget.contains(relatedTarget)) return
@@ -156,14 +163,12 @@
   }
 
   function handleDrop(event: DragEvent) {
-    // Only directories can be drop targets
     if (entry.type !== "directory") return
 
     event.preventDefault()
     onDrop(entry)
   }
 
-  // Long press handling for mobile and desktop
   const LONG_PRESS_DURATION = 500
   let longPressTimer: ReturnType<typeof setTimeout> | null = null
   let pressStartPos = { x: 0, y: 0 }
@@ -188,8 +193,6 @@
     const dx = clientX - pressStartPos.x
     const dy = clientY - pressStartPos.y
     const distance = Math.sqrt(dx * dx + dy * dy)
-
-    // Cancel long press if moved too much
     if (distance > 10) {
       clearTimeout(longPressTimer)
       longPressTimer = null
@@ -197,13 +200,11 @@
   }
 
   function endLongPress() {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer)
-      longPressTimer = null
-    }
+    if (!longPressTimer) return
+    clearTimeout(longPressTimer)
+    longPressTimer = null
   }
 
-  // Touch event handlers
   function handleTouchStart(event: TouchEvent) {
     const touch = event.touches[0]
     startLongPress(touch.clientX, touch.clientY)
@@ -218,9 +219,7 @@
     endLongPress()
   }
 
-  // Mouse event handlers for desktop long press
   function handleMouseDown(event: MouseEvent) {
-    // Only handle left click, ignore if on interactive elements
     if (event.button !== 0) return
     const target = event.target as HTMLElement
     if (target.closest(".move-here-btn") || target.closest(".menu-trigger"))
@@ -238,24 +237,20 @@
   }
 
   function handleRowClick(event: MouseEvent) {
-    // Don't handle if long press was just triggered
     if (longPressTriggered) {
       longPressTriggered = false
       return
     }
 
-    // Don't handle if clicking on interactive elements
     const target = event.target as HTMLElement
     if (target.closest(".move-here-btn") || target.closest(".menu-trigger"))
       return
 
-    // In selection mode, toggle selection (except for parent entry)
     if (isSelectionMode && !isParentEntry) {
       onToggleSelect?.(entry)
       return
     }
 
-    // Navigate to directory or open file
     if (isParentEntry) {
       const parentPath = getParentPath(currentPath)
       onNavigate(parentPath)
@@ -314,12 +309,7 @@
       {:else}
         <span class="entry-name">{entry.name}</span>
       {/if}
-      {#if deleteError}
-        <span class="delete-error" role="alert">{deleteError}</span>
-      {/if}
-      {#if renameError && !isRenaming}
-        <span class="rename-error" role="alert">{renameError}</span>
-      {/if}
+      <FileRowStatusMessages {deleteError} {renameError} {isRenaming} />
     </div>
   </td>
   <td class="col-size">
@@ -328,42 +318,18 @@
   <td class="col-modified">
     <span class="date-full">{formatDate(entry.mtime)}</span>
   </td>
-  <td class="col-actions">
-    {#if isSelectionMode && entry.type === "directory"}
-      <button
-        type="button"
-        class="move-here-btn"
-        onclick={() => onMoveHere?.(entry)}
-        aria-label="Move selected items to {isParentEntry
-          ? 'parent folder'
-          : entry.name}"
-        title="Move here"
-        disabled={isSelected}
-      >
-        ↓
-      </button>
-    {:else if !isParentEntry && !isSelectionMode}
-      <div class="action-menu">
-        <button
-          type="button"
-          class="menu-trigger"
-          class:active={isMenuOpen}
-          onclick={(e) => onMenuToggle(entry.name, e)}
-          onkeydown={handleMenuKeydown}
-          aria-haspopup="menu"
-          aria-expanded={isMenuOpen}
-          aria-label="Actions for {entry.name}"
-          disabled={isDeleting}
-        >
-          {#if isDeleting}
-            <span class="spinner-small"></span>
-          {:else}
-            ⋮
-          {/if}
-        </button>
-      </div>
-    {/if}
-  </td>
+  <FileRowActions
+    {showMoveHere}
+    {showMenu}
+    {isMenuOpen}
+    {isDeleting}
+    {moveHereLabel}
+    moveHereDisabled={isSelected}
+    {menuAriaLabel}
+    onMoveHere={() => onMoveHere?.(entry)}
+    onMenuToggle={handleMenuToggle}
+    onMenuKeydown={handleMenuKeydown}
+  />
 </tr>
 
 <style>
@@ -432,47 +398,6 @@
     vertical-align: middle;
   }
 
-  .move-here-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: 1px solid var(--color-link);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--color-link);
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition:
-      background-color 0.15s,
-      color 0.15s;
-  }
-
-  .move-here-btn:hover {
-    background: var(--color-link);
-    color: var(--color-bg);
-  }
-
-  .move-here-btn:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-
-  .move-here-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    border-color: var(--color-muted);
-    color: var(--color-muted);
-  }
-
-  .move-here-btn:disabled:hover {
-    background: transparent;
-    color: var(--color-muted);
-  }
-
   .col-name {
     min-width: 200px;
   }
@@ -498,14 +423,6 @@
     text-decoration: underline;
   }
 
-  .delete-error {
-    flex-basis: 100%;
-    font-size: 0.8rem;
-    color: var(--color-error, #dc3545);
-    margin-top: 0.25rem;
-    padding-left: 1.6rem;
-  }
-
   .col-size {
     white-space: nowrap;
     color: var(--color-muted);
@@ -516,74 +433,6 @@
     white-space: nowrap;
     color: var(--color-muted);
     min-width: 150px;
-  }
-
-  .col-actions {
-    width: 48px;
-    text-align: center;
-    padding: 0.4rem;
-    height: 32px;
-    box-sizing: content-box;
-  }
-
-  .action-menu {
-    position: relative;
-    display: inline-block;
-  }
-
-  .menu-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: var(--color-muted);
-    font-size: 1.2rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition:
-      background-color 0.15s,
-      color 0.15s;
-  }
-
-  .menu-trigger:hover {
-    background: var(--color-hover);
-    color: var(--color-text);
-  }
-
-  .menu-trigger:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-
-  .menu-trigger.active {
-    background: var(--color-hover);
-    color: var(--color-text);
-  }
-
-  .menu-trigger:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-
-  .spinner-small {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--color-border);
-    border-top-color: var(--color-link);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
   }
 
   @media (max-width: 768px) {
@@ -601,11 +450,6 @@
 
     .name-content {
       gap: 0.5rem;
-    }
-
-    .col-actions {
-      width: 40px;
-      height: 40px;
     }
   }
 
@@ -633,16 +477,6 @@
 
     .file-row {
       min-height: 44px;
-    }
-
-    .col-actions {
-      height: 40px;
-    }
-
-    .menu-trigger,
-    .move-here-btn {
-      width: 40px;
-      height: 40px;
     }
   }
 </style>

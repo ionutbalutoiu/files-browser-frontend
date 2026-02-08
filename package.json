@@ -9,18 +9,27 @@
     "prod-build": "vite build --mode production",
     "dev-build": "vite build --mode development",
     "preview": "vite preview",
-    "test": "npx tsx src/lib/url.test.ts",
+    "test": "vitest run src/lib/__tests__/url.test.ts",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test:unit": "vitest run",
+    "test:watch": "vitest",
+    "quality": "npm run check && npm run test:unit && npm run build",
     "format": "prettier --write \"src/**/*.{ts,js,svelte,css,md,json,html}\" \"*.md\""
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/svelte": "^5.2.8",
+    "@testing-library/user-event": "^14.6.1",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tsconfig/svelte": "^5.0.4",
     "@types/node": "^25.0.10",
+    "jsdom": "^27.0.1",
     "prettier": "^3.8.0",
     "prettier-plugin-svelte": "^3.4.1",
     "svelte": "^5.16.0",
     "svelte-check": "^4.1.1",
     "typescript": "^5.7.2",
-    "vite": "^6.0.6"
+    "vite": "^6.0.6",
+    "vitest": "^3.2.4"
   }
 }

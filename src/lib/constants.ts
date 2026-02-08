@@ -13,6 +13,15 @@ export const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024
 /** Human-readable max file size for error messages */
 export const MAX_FILE_SIZE_LABEL = "2GB"
 
+/** Parallel upload concurrency */
+export const DEFAULT_UPLOAD_CONCURRENCY = 2
+
+/** Retry count for transient upload failures */
+export const DEFAULT_UPLOAD_MAX_RETRIES = 2
+
+/** Base delay for retry backoff (milliseconds) */
+export const DEFAULT_UPLOAD_RETRY_BASE_DELAY_MS = 300
+
 // =============================================================================
 // API Endpoints
 // =============================================================================

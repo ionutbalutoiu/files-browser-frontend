@@ -1,27 +1,41 @@
-# 📂 Files Browser
+# Files Browser
 
-A minimal, modern web UI for browsing directories served by Nginx with `autoindex_format json`.
-
-![Svelte](https://img.shields.io/badge/Svelte-5-orange)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
+A modern web UI for browsing directories served by Nginx with `autoindex_format json`.
 
 ## Features
 
-- 🗂️ Browse directories with sorting and search
-- 📤 Upload files and create folders
-- ✏️ Rename, move, and delete items
-- 🔗 Public file sharing
-- 🌙 Dark mode support
-- 📱 Mobile-friendly
+- Browse directories with sorting and search
+- Upload files with parallel queue, retry, cancel, and per-file progress
+- Rename, move, and delete items
+- Public file sharing
+- Responsive layout with dark mode support
 
 ## Quick Start
 
 ```bash
 npm install
-npm run dev      # Development server
-npm run build    # Production build → dist/
+npm run dev
 ```
+
+## Scripts
+
+```bash
+npm run dev         # start Vite dev server
+npm run check       # type + Svelte diagnostics
+npm run test:unit   # Vitest unit/component tests
+npm run test        # legacy URL utility test script
+npm run build       # production build
+npm run quality     # check + unit tests + build
+npm run format      # prettier
+```
+
+## Upload Behavior
+
+- Uses single-file requests in a parallel worker pool (default concurrency: `2`)
+- Continues queue when some files already exist (`skipped`)
+- Retries transient failures with exponential backoff (`2` retries by default)
+- Supports cancel-all via `AbortSignal`
+- Tracks aggregate and per-file upload status
 
 ## Deployment
 
@@ -39,22 +53,3 @@ location /files/ {
     autoindex_format json;
 }
 ```
-
-## Usage
-
-Navigate to `/ui/` — uses hash-based routing:
-
-- `/ui/#/` — Root directory
-- `/ui/#/photos/2024/` — Subdirectory
-- `/ui/#/shared` — Shared files view
-
-## Tech Stack
-
-- **Svelte 5** with runes
-- **TypeScript** strict mode
-- **Vite 6** for building
-- **Pure CSS** with variables
-
-## License
-
-MIT
