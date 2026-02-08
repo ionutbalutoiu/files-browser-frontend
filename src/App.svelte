@@ -87,9 +87,12 @@
 
   function handleUploadFilesSelected(files: File[]) {
     if (files.length === 0) return
+
+    const existingNames = entries.map((entry) => entry.name)
     void startUploadSession({
       files,
       targetPath: currentPath,
+      existingNames,
     })
   }
 

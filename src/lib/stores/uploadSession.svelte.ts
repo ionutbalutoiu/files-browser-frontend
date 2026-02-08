@@ -45,36 +45,39 @@ export interface UploadSessionState {
 interface StartUploadSessionInput {
   files: File[]
   targetPath: string
+  existingNames?: ReadonlyArray<string>
 }
 
-const initialState: UploadSessionState = {
-  phase: "hidden",
-  isActive: false,
-  progress: 0,
-  targetPath: "/",
-  totalFiles: 0,
-  totalSize: "0 B",
-  uploaded: [],
-  skipped: [],
-  errors: [],
-  validationErrors: [],
-  files: [],
-  completedCount: 0,
-  failedCount: 0,
-  cancelledCount: 0,
-  remainingCount: 0,
-  totalCount: 0,
-  canRetryFailed: false,
-  completionToken: 0,
-  lastCompletedTargetPath: "/",
+function createInitialState(): UploadSessionState {
+  return {
+    phase: "hidden",
+    isActive: false,
+    progress: 0,
+    targetPath: "/",
+    totalFiles: 0,
+    totalSize: "0 B",
+    uploaded: [],
+    skipped: [],
+    errors: [],
+    validationErrors: [],
+    files: [],
+    completedCount: 0,
+    failedCount: 0,
+    cancelledCount: 0,
+    remainingCount: 0,
+    totalCount: 0,
+    canRetryFailed: false,
+    completionToken: 0,
+    lastCompletedTargetPath: "/",
+  }
 }
 
-let sessionState = $state<UploadSessionState>({ ...initialState })
+let sessionState = $state<UploadSessionState>(createInitialState())
 let activeAbortController: AbortController | null = null
 let currentFiles: File[] = []
 
 function resetState(): void {
-  sessionState = { ...initialState }
+  Object.assign(sessionState, createInitialState())
   activeAbortController = null
   currentFiles = []
 }
@@ -90,31 +93,52 @@ function updateCanRetryFailed(): void {
   )
 }
 
-async function runUpload(files: File[], targetPath: string): Promise<void> {
+async function runUpload(
+  files: File[],
+  targetPath: string,
+  clientSkippedFiles: ReadonlyArray<string> = [],
+  totalSelectedFiles = files.length,
+  totalSizeLabel = formatTotalSize(files),
+): Promise<void> {
   activeAbortController = new AbortController()
+  const preSkippedProgress: ParallelUploadFileProgress[] =
+    clientSkippedFiles.map((name, index) => ({
+      id: `client-skip-${index}`,
+      name,
+      percent: 100,
+      status: "skipped",
+      attempt: 0,
+      message: "Already exists (checked before upload)",
+    }))
+  const queuedProgress: ParallelUploadFileProgress[] = files.map(
+    (file, index) => ({
+      id: `${index}`,
+      name: file.name,
+      percent: 0,
+      status: "queued",
+      attempt: 0,
+    }),
+  )
 
   sessionState.phase = "uploading"
   sessionState.isActive = true
   sessionState.targetPath = targetPath || "/"
-  sessionState.totalFiles = files.length
-  sessionState.totalSize = formatTotalSize(files)
+  sessionState.totalFiles = totalSelectedFiles
+  sessionState.totalSize = totalSizeLabel
   sessionState.progress = 0
   sessionState.uploaded = []
-  sessionState.skipped = []
+  sessionState.skipped = [...clientSkippedFiles]
   sessionState.errors = []
   sessionState.validationErrors = []
-  sessionState.files = files.map((file, index) => ({
-    id: `${index}`,
-    name: file.name,
-    percent: 0,
-    status: "queued",
-    attempt: 0,
-  }))
-  sessionState.completedCount = 0
+  sessionState.files = [...preSkippedProgress, ...queuedProgress]
+  sessionState.completedCount = clientSkippedFiles.length
   sessionState.failedCount = 0
   sessionState.cancelledCount = 0
-  sessionState.remainingCount = files.length
-  sessionState.totalCount = files.length
+  sessionState.remainingCount = Math.max(
+    0,
+    totalSelectedFiles - clientSkippedFiles.length,
+  )
+  sessionState.totalCount = totalSelectedFiles
   sessionState.canRetryFailed = false
 
   let latestCancelledCount = 0
@@ -126,19 +150,36 @@ async function runUpload(files: File[], targetPath: string): Promise<void> {
       retryBaseDelayMs: DEFAULT_UPLOAD_RETRY_BASE_DELAY_MS,
       signal: activeAbortController.signal,
       onProgress: (progress) => {
-        sessionState.progress = progress.percent
-        sessionState.completedCount = progress.completed
+        const totalProcessedCount =
+          clientSkippedFiles.length +
+          progress.completed +
+          progress.failed +
+          progress.cancelled
+
+        sessionState.progress =
+          clientSkippedFiles.length > 0
+            ? Math.min(
+                100,
+                Math.round((totalProcessedCount / totalSelectedFiles) * 100),
+              )
+            : progress.percent
+
+        sessionState.completedCount =
+          clientSkippedFiles.length + progress.completed
         sessionState.failedCount = progress.failed
         sessionState.cancelledCount = progress.cancelled
-        sessionState.remainingCount = progress.remaining
-        sessionState.totalCount = progress.total
-        sessionState.files = progress.files
+        sessionState.remainingCount = Math.max(
+          0,
+          totalSelectedFiles - totalProcessedCount,
+        )
+        sessionState.totalCount = totalSelectedFiles
+        sessionState.files = [...preSkippedProgress, ...progress.files]
         latestCancelledCount = progress.cancelled
       },
     })
 
     sessionState.uploaded = result.uploaded
-    sessionState.skipped = result.skipped
+    sessionState.skipped = [...clientSkippedFiles, ...result.skipped]
     sessionState.errors = result.errors ?? []
 
     if (
@@ -151,7 +192,7 @@ async function runUpload(files: File[], targetPath: string): Promise<void> {
     } else if (result.uploaded.length === 0 && sessionState.errors.length > 0) {
       sessionState.phase = "error"
     } else if (
-      result.skipped.length > 0 ||
+      sessionState.skipped.length > 0 ||
       sessionState.errors.length > 0 ||
       latestCancelledCount > 0
     ) {
@@ -183,11 +224,18 @@ export function getUploadSessionState(): UploadSessionState {
 export async function startUploadSession({
   files,
   targetPath,
+  existingNames = [],
 }: StartUploadSessionInput): Promise<void> {
   if (sessionState.phase === "uploading") return
   if (files.length === 0) return
 
-  currentFiles = [...files]
+  const existingSet = new Set(existingNames)
+  const clientSkippedFiles = files
+    .filter((file) => existingSet.has(file.name))
+    .map((file) => file.name)
+  const filesToUpload = files.filter((file) => !existingSet.has(file.name))
+
+  currentFiles = [...filesToUpload]
 
   sessionState.phase = "hidden"
   sessionState.isActive = false
@@ -207,12 +255,12 @@ export async function startUploadSession({
   sessionState.totalCount = files.length
   sessionState.canRetryFailed = false
 
-  const validationErrors = validateFiles(files)
+  const validationErrors = validateFiles(filesToUpload)
   if (validationErrors.length > 0) {
     sessionState.phase = "validation"
     sessionState.isActive = false
     sessionState.validationErrors = validationErrors
-    sessionState.files = files.map((file, index) => ({
+    sessionState.files = filesToUpload.map((file, index) => ({
       id: `${index}`,
       name: file.name,
       percent: 0,
@@ -224,7 +272,40 @@ export async function startUploadSession({
     return
   }
 
-  await runUpload(files, targetPath)
+  if (filesToUpload.length === 0) {
+    sessionState.phase = "partial"
+    sessionState.progress = 100
+    sessionState.uploaded = []
+    sessionState.skipped = clientSkippedFiles
+    sessionState.errors = []
+    sessionState.validationErrors = []
+    sessionState.files = clientSkippedFiles.map((name, index) => ({
+      id: `client-skip-${index}`,
+      name,
+      percent: 100,
+      status: "skipped",
+      attempt: 0,
+      message: "Already exists (checked before upload)",
+    }))
+    sessionState.completedCount = clientSkippedFiles.length
+    sessionState.failedCount = 0
+    sessionState.cancelledCount = 0
+    sessionState.remainingCount = 0
+    sessionState.totalCount = files.length
+    sessionState.isActive = false
+    sessionState.lastCompletedTargetPath = sessionState.targetPath
+    sessionState.completionToken += 1
+    updateCanRetryFailed()
+    return
+  }
+
+  await runUpload(
+    filesToUpload,
+    targetPath,
+    clientSkippedFiles,
+    files.length,
+    formatTotalSize(files),
+  )
 }
 
 export function cancelUploadSession(): void {
