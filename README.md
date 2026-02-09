@@ -2,6 +2,11 @@
 
 A modern web UI for browsing directories served by Nginx with `autoindex_format json`.
 
+## Prerequisites
+
+- Node.js `>=20.19.0 <25`
+- Corepack enabled (ships with Node.js)
+
 ## Features
 
 - Browse directories with sorting and search
@@ -13,20 +18,32 @@ A modern web UI for browsing directories served by Nginx with `autoindex_format 
 ## Quick Start
 
 ```bash
-npm install
-npm run dev
+corepack enable
+corepack prepare pnpm@10.29.1 --activate
+pnpm install
+pnpm run dev
+```
+
+## CI and Production Installs
+
+This repository enforces strict pnpm policy via `.npmrc` (engine checks, strict peers, controlled dependency build scripts, and release-age gating).
+
+Use frozen, lockfile-driven installs in automation and container builds:
+
+```bash
+pnpm install --frozen-lockfile
 ```
 
 ## Scripts
 
 ```bash
-npm run dev         # start Vite dev server
-npm run check       # type + Svelte diagnostics
-npm run test:unit   # Vitest unit/component tests
-npm run test        # legacy URL utility test script
-npm run build       # production build
-npm run quality     # check + unit tests + build
-npm run format      # prettier
+pnpm run dev         # start Vite dev server
+pnpm run check       # type + Svelte diagnostics
+pnpm run test:unit   # Vitest unit/component tests
+pnpm run test        # legacy URL utility test script
+pnpm run build       # production build
+pnpm run quality     # check + unit tests + build
+pnpm run format      # prettier
 ```
 
 ## Upload Behavior

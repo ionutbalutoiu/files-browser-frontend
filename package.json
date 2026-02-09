@@ -2,6 +2,11 @@
   "name": "files-browser",
   "private": true,
   "version": "1.0.0",
+  "packageManager": "pnpm@10.29.1",
+  "engines": {
+    "node": ">=20.19.0 <25",
+    "pnpm": "10.29.1"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +18,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test:unit": "vitest run",
     "test:watch": "vitest",
-    "quality": "npm run check && npm run test:unit && npm run build",
+    "quality": "pnpm run check && pnpm run test:unit && pnpm run build",
     "format": "prettier --write \"src/**/*.{ts,js,svelte,css,md,json,html}\" \"*.md\""
   },
   "devDependencies": {

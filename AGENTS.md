@@ -109,7 +109,7 @@ Primary structure:
 Run:
 
 ```bash
-npm run format
+pnpm run format
 ```
 
 ### Frontend logic/UI changes
@@ -117,7 +117,7 @@ npm run format
 Run:
 
 ```bash
-npm run format && npm run check && npm run test:unit && npm run build
+pnpm run format && pnpm run check && pnpm run test:unit && pnpm run build
 ```
 
 ### Large refactors / risky cross-cutting changes
@@ -125,18 +125,21 @@ npm run format && npm run check && npm run test:unit && npm run build
 Run:
 
 ```bash
-npm run quality
+pnpm run quality
 ```
 
 ## Operational Commands
 
-- `npm run dev`: start development server
-- `npm run check`: Svelte + TypeScript diagnostics
-- `npm run test`: URL utility suite
-- `npm run test:unit`: full unit/component test suite
-- `npm run build`: production build
-- `npm run quality`: check + test:unit + build
-- `npm run format`: repository formatting
+- `corepack enable && corepack prepare pnpm@10.29.1 --activate`: bootstrap pinned pnpm
+- `pnpm install --frozen-lockfile`: deterministic CI/prod dependency install
+- `pnpm install --no-frozen-lockfile`: refresh lockfile intentionally when changing deps
+- `pnpm run dev`: start development server
+- `pnpm run check`: Svelte + TypeScript diagnostics
+- `pnpm run test`: URL utility suite
+- `pnpm run test:unit`: full unit/component test suite
+- `pnpm run build`: production build
+- `pnpm run quality`: check + test:unit + build
+- `pnpm run format`: repository formatting
 
 ## API Endpoint Reference
 

@@ -4,10 +4,12 @@ FROM node:24-alpine AS builder
 ARG ENV=prod
 
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN corepack enable && corepack prepare pnpm@10.29.1 --activate
+RUN pnpm fetch --frozen-lockfile
+RUN pnpm install --frozen-lockfile --offline
 COPY . .
-RUN npm run ${ENV}-build
+RUN pnpm run ${ENV}-build
 
 # Stage 2: Nginx with config template
 FROM nginx:1.29.4
