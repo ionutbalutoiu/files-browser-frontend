@@ -80,20 +80,49 @@
     return type === "directory" ? "📁" : "📄"
   }
 
+  function isInteractiveTarget(target: EventTarget | null): boolean {
+    const element = target as HTMLElement | null
+    if (!element) return false
+    return (
+      element.closest(
+        "button, input, select, textarea, a, [contenteditable='true'], [role='button']",
+      ) !== null
+    )
+  }
+
+  function openFileInNewTab(path: string) {
+    window.open(path, "_blank", "noopener,noreferrer")
+  }
+
+  function navigateEntry() {
+    if (isParentEntry) {
+      const parentPath = getParentPath(currentPath)
+      onNavigate(parentPath)
+      return
+    }
+
+    if (entry.type === "directory") {
+      const newPath = getDirectoryUrl(currentPath, entry.name)
+      onNavigate(newPath)
+      return
+    }
+
+    openFileInNewTab(getFileUrl(currentPath, entry.name))
+  }
+
   function handleKeydown(event: KeyboardEvent) {
     if (isRenaming) return
+    if (event.currentTarget !== event.target) return
+    if (isInteractiveTarget(event.target)) return
 
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
-      if (isParentEntry) {
-        const parentPath = getParentPath(currentPath)
-        onNavigate(parentPath)
-      } else if (entry.type === "directory") {
-        const newPath = getDirectoryUrl(currentPath, entry.name)
-        onNavigate(newPath)
-      } else {
-        window.open(getFileUrl(currentPath, entry.name), "_blank")
+      if (isSelectionMode && !isParentEntry) {
+        onToggleSelect?.(entry)
+        return
       }
+
+      navigateEntry()
     }
   }
 
@@ -103,7 +132,8 @@
 
   function handleMenuKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
-      onMenuToggle(entry.name, event as unknown as MouseEvent)
+      event.preventDefault()
+      onMenuToggle(entry.name, new MouseEvent("click"))
     }
   }
 
@@ -129,8 +159,11 @@
       return
     }
 
-    event.dataTransfer?.setData("text/plain", entry.name)
-    event.dataTransfer!.effectAllowed = "move"
+    const dataTransfer = event.dataTransfer
+    if (!dataTransfer) return
+
+    dataTransfer.setData("text/plain", entry.name)
+    dataTransfer.effectAllowed = "move"
     onDragStart(entry)
   }
 
@@ -141,8 +174,11 @@
   function handleDragOver(event: DragEvent) {
     if (entry.type !== "directory") return
 
+    const dataTransfer = event.dataTransfer
+    if (!dataTransfer) return
+
     event.preventDefault()
-    event.dataTransfer!.dropEffect = "move"
+    dataTransfer.dropEffect = "move"
   }
 
   function handleDragEnter(event: DragEvent) {
@@ -245,21 +281,14 @@
     const target = event.target as HTMLElement
     if (target.closest(".move-here-btn") || target.closest(".menu-trigger"))
       return
+    if (isInteractiveTarget(target)) return
 
     if (isSelectionMode && !isParentEntry) {
       onToggleSelect?.(entry)
       return
     }
 
-    if (isParentEntry) {
-      const parentPath = getParentPath(currentPath)
-      onNavigate(parentPath)
-    } else if (entry.type === "directory") {
-      const newPath = getDirectoryUrl(currentPath, entry.name)
-      onNavigate(newPath)
-    } else {
-      window.open(getFileUrl(currentPath, entry.name), "_blank")
-    }
+    navigateEntry()
   }
 </script>
 

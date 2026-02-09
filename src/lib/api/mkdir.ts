@@ -5,6 +5,7 @@
 
 import { stripSlashes } from "../url"
 import { BACKEND_ENDPOINTS } from "../constants"
+import { validateFolderName } from "../validators"
 import { fetchWithTimeout } from "./http"
 import type { CreateDirectoryResult, AppError } from "../types"
 
@@ -18,18 +19,9 @@ export async function createDirectory(
   dirName: string,
 ): Promise<CreateDirectoryResult> {
   // Validate directory name client-side
-  if (!dirName || dirName.trim() === "") {
-    throw { message: "Directory name cannot be empty" } as AppError
-  }
-
-  if (dirName.includes("/") || dirName.includes("\\")) {
-    throw {
-      message: "Directory name cannot contain path separators",
-    } as AppError
-  }
-
-  if (dirName === "." || dirName === "..") {
-    throw { message: "Invalid directory name" } as AppError
+  const validationError = validateFolderName(dirName)
+  if (validationError) {
+    throw { message: validationError } as AppError
   }
 
   // Build the full path

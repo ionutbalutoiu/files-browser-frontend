@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from "svelte"
+
   interface Props {
     title: string
     confirmLabel?: string
@@ -19,34 +21,72 @@
     children,
   }: Props = $props()
 
-  function handleKeydown(event: KeyboardEvent) {
+  const FOCUSABLE_SELECTOR =
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+  let dialogRef = $state<HTMLDivElement | null>(null)
+
+  function getFocusableElements(): HTMLElement[] {
+    if (!dialogRef) return []
+    return Array.from(
+      dialogRef.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+    )
+  }
+
+  function handleDialogKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
+      event.preventDefault()
       onCancel()
+      return
+    }
+
+    if (event.key !== "Tab") return
+
+    const focusable = getFocusableElements()
+    if (focusable.length === 0) {
+      event.preventDefault()
+      dialogRef?.focus()
+      return
+    }
+
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    const active = document.activeElement
+
+    if (event.shiftKey && active === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault()
+      first.focus()
     }
   }
 
-  function handleOverlayClick() {
+  function handleOverlayClick(event: MouseEvent) {
+    if (event.target !== event.currentTarget) return
     onCancel()
   }
+
+  onMount(() => {
+    const focusable = getFocusableElements()
+    if (focusable.length > 0) {
+      focusable[0].focus()
+      return
+    }
+    dialogRef?.focus()
+  })
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div
-  class="dialog-overlay"
-  onclick={handleOverlayClick}
-  onkeydown={handleKeydown}
-  role="presentation"
->
-  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div class="dialog-overlay" onclick={handleOverlayClick} role="presentation">
   <div
+    bind:this={dialogRef}
     class="dialog"
     role="alertdialog"
     aria-modal="true"
     aria-labelledby="dialog-title"
     aria-describedby="dialog-description"
-    tabindex="0"
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.stopPropagation()}
+    tabindex="-1"
+    onkeydown={handleDialogKeydown}
   >
     <h2 id="dialog-title" class="dialog-title">{title}</h2>
     <div id="dialog-description" class="dialog-message">

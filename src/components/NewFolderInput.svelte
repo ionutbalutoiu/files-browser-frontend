@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createDirectory } from "../lib/api"
+  import { validateFolderName } from "../lib/validators"
   import type { AppError } from "../lib/types"
 
   interface Props {
@@ -27,8 +28,9 @@
   async function handleCreate() {
     const trimmedName = folderName.trim()
 
-    if (!trimmedName) {
-      error = "Please enter a folder name"
+    const validationError = validateFolderName(trimmedName)
+    if (validationError) {
+      error = validationError
       return
     }
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte"
   import type { NginxEntry } from "../../lib/types"
 
   interface MenuPosition {
@@ -11,6 +12,7 @@
     entry: NginxEntry
     position: MenuPosition
     isSharing?: boolean
+    onClose: () => void
     onShare: (entry: NginxEntry) => void
     onRename: (entry: NginxEntry) => void
     onDelete: (entry: NginxEntry) => void
@@ -21,17 +23,91 @@
     entry,
     position,
     isSharing = false,
+    onClose,
     onShare,
     onRename,
     onDelete,
     onSelect,
   }: Props = $props()
+
+  let menuRef = $state<HTMLDivElement | null>(null)
+
+  function getMenuItems(): HTMLButtonElement[] {
+    if (!menuRef) return []
+    return Array.from(
+      menuRef.querySelectorAll<HTMLButtonElement>(
+        "button.menu-item:not(:disabled)",
+      ),
+    )
+  }
+
+  function focusItem(index: number) {
+    const items = getMenuItems()
+    if (items.length === 0) return
+
+    const normalizedIndex =
+      ((index % items.length) + items.length) % items.length
+    items[normalizedIndex].focus()
+  }
+
+  function handleMenuKeydown(event: KeyboardEvent) {
+    const items = getMenuItems()
+    if (items.length === 0) return
+
+    const activeIndex = items.findIndex(
+      (item) => item === document.activeElement,
+    )
+
+    if (event.key === "Escape") {
+      event.preventDefault()
+      onClose()
+      return
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault()
+      focusItem(activeIndex + 1)
+      return
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault()
+      focusItem(activeIndex - 1)
+      return
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault()
+      focusItem(0)
+      return
+    }
+
+    if (event.key === "End") {
+      event.preventDefault()
+      focusItem(items.length - 1)
+      return
+    }
+
+    if (event.key === "Tab") {
+      onClose()
+    }
+  }
+
+  onMount(() => {
+    queueMicrotask(() => {
+      focusItem(0)
+    })
+  })
 </script>
 
 <div
+  bind:this={menuRef}
   class="menu-dropdown"
   class:open-upward={position.openUpward}
   role="menu"
+  aria-label={`Actions for ${entry.name}`}
+  tabindex="-1"
+  onkeydown={handleMenuKeydown}
   style="top: {position.top}px; left: {position.left}px;"
 >
   {#if entry.type === "file"}

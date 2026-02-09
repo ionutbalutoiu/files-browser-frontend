@@ -37,7 +37,7 @@ export const PUBLIC_BASE_URL = getPublicBaseUrl()
  * @returns The full public URL
  */
 export function getPublicFileUrl(filePath: string): string {
-  // Ensure path starts with /
-  const normalizedPath = filePath.startsWith("/") ? filePath : `/${filePath}`
-  return `${PUBLIC_BASE_URL}${normalizedPath}`
+  const normalizedBase = PUBLIC_BASE_URL.replace(/\/+$/, "")
+  const normalizedPath = filePath.replace(/^\/+/, "")
+  return `${normalizedBase}/${normalizedPath}`
 }

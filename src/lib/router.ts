@@ -8,6 +8,14 @@ import type { RouteChangeCallback, BreadcrumbSegment, RouteInfo } from "./types"
 
 let currentCallback: RouteChangeCallback | null = null
 
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
 /**
  * Check if the current route is the shared files view.
  */
@@ -46,7 +54,7 @@ export function getCurrentPath(): string {
   }
 
   // Decode the path from URL encoding
-  let path = decodeURIComponent(hash)
+  let path = safeDecodeURIComponent(hash)
 
   // Ensure leading slash
   if (!path.startsWith("/")) {
@@ -97,7 +105,7 @@ export function parseBreadcrumbs(path: string): BreadcrumbSegment[] {
 
   for (const part of parts) {
     // Decode for display
-    const decodedName = decodeURIComponent(part)
+    const decodedName = safeDecodeURIComponent(part)
     cumulativePath += part + "/"
 
     segments.push({

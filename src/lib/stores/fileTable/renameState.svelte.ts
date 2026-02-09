@@ -89,7 +89,7 @@ export function cancelRename(): void {
 export async function confirmRename(
   currentPath: string,
   originalName: string,
-  onSuccess: (newName: string) => void,
+  onSuccess: () => void,
 ): Promise<void> {
   const trimmedName = renameValue.trim()
   const validationResult = validateRename(trimmedName, originalName)
@@ -113,7 +113,7 @@ export async function confirmRename(
     await renameFile(oldPath, trimmedName)
     renameError = null
     renamingEntry = null
-    onSuccess(trimmedName)
+    onSuccess()
   } catch (err) {
     renameError = {
       name: originalName,

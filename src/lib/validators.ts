@@ -70,9 +70,5 @@ export function validateFolderName(name: string): string {
     return "Invalid folder name"
   }
 
-  if (trimmed.startsWith(".")) {
-    return "Hidden folders are not allowed"
-  }
-
   return "" // Valid
 }

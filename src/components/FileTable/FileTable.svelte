@@ -5,6 +5,7 @@
     getOpenMenu,
     getMenuPosition,
     toggleMenu as storeToggleMenu,
+    closeMenu,
     handleDocumentClick,
     // Delete state
     getDeletingEntry,
@@ -81,15 +82,9 @@
     confirmDelete(currentPath, onDelete)
   }
 
-  // Wrap confirmRename to pass currentPath and handle entry update
+  // Wrap confirmRename to pass currentPath and refresh listing on success
   function handleConfirmRename(originalName: string) {
-    confirmRename(currentPath, originalName, (newName) => {
-      const entryIndex = entries.findIndex((e) => e.name === originalName)
-      if (entryIndex !== -1) {
-        entries[entryIndex] = { ...entries[entryIndex], name: newName }
-        entries = [...entries]
-      }
-    })
+    confirmRename(currentPath, originalName, onRefresh)
   }
 
   // Wrap handleShare to pass currentPath
@@ -180,7 +175,7 @@
     onSelectionModeChange(true)
     onSelectedEntriesChange(new Set([entry.name]))
     // Close any open menu
-    storeToggleMenu("", {} as MouseEvent)
+    closeMenu()
   }
 
   function cancelSelectionMode() {
@@ -276,7 +271,7 @@
 <svelte:document onclick={handleDocumentClick} onkeydown={handleKeydown} />
 
 <div class="table-container">
-  <table class="file-table" role="grid">
+  <table class="file-table">
     <FileTableHeader {sort} {onSortChange} />
     <tbody>
       {#if currentPath !== "/" && currentPath !== ""}
@@ -358,6 +353,7 @@
     entry={currentMenuEntry}
     position={currentMenuPosition}
     isSharing={getSharingEntry() === currentMenuEntry.name}
+    onClose={closeMenu}
     {onShare}
     onRename={startRename}
     onDelete={requestDelete}
