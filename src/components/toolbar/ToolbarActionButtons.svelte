@@ -1,25 +1,115 @@
 <script lang="ts">
+  import { onDestroy } from "svelte"
+  import type { UploadSessionState } from "../../lib/stores/uploadSession.svelte"
+  import UploadStatusCard from "../upload/UploadStatusCard.svelte"
   import NewFolderInput from "../NewFolderInput.svelte"
 
   interface Props {
     uploadInProgress: boolean
     currentPath: string
     selectedCount: number
+    uploadSessionState: UploadSessionState
     onUploadClick: () => void
     onDirectoryCreated: () => void
     onCancelSelection: () => void
+    onCancelUpload: () => void
+    onRetryFailedUpload: () => void
+    onDismissUpload: () => void
   }
 
   let {
     uploadInProgress,
     currentPath,
     selectedCount,
+    uploadSessionState,
     onUploadClick,
     onDirectoryCreated,
     onCancelSelection,
+    onCancelUpload,
+    onRetryFailedUpload,
+    onDismissUpload,
   }: Props = $props()
 
   let showNewFolder = $state(false)
+  let panelEl = $state<HTMLDivElement | null>(null)
+  let anchorEl = $state<HTMLButtonElement | null>(null)
+
+  let showPanel = $derived(uploadSessionState.phase !== "hidden")
+  let isUploading = $derived(uploadSessionState.phase === "uploading")
+
+  let dismissTimer: ReturnType<typeof setTimeout> | null = null
+
+  function startDismissTimer() {
+    clearDismissTimer()
+    dismissTimer = setTimeout(() => onDismissUpload(), 10_000)
+  }
+
+  function clearDismissTimer() {
+    if (dismissTimer) {
+      clearTimeout(dismissTimer)
+      dismissTimer = null
+    }
+  }
+
+  function resetDismissTimer() {
+    if (showPanel && !isUploading) startDismissTimer()
+  }
+
+  function handlePanelMouseEnter() {
+    clearDismissTimer()
+  }
+
+  function handlePanelMouseLeave() {
+    resetDismissTimer()
+  }
+
+  function handlePanelFocusIn() {
+    clearDismissTimer()
+  }
+
+  function handlePanelFocusOut() {
+    resetDismissTimer()
+  }
+
+  function handleRetry() {
+    clearDismissTimer()
+    onRetryFailedUpload()
+  }
+
+  function handleClickOutside(event: MouseEvent) {
+    if (!showPanel || isUploading) return
+    const target = event.target as Node
+    if (panelEl?.contains(target) || anchorEl?.contains(target)) return
+    onDismissUpload()
+  }
+
+  $effect(() => {
+    if (showPanel) {
+      document.addEventListener("pointerdown", handleClickOutside, true)
+    }
+    return () => {
+      document.removeEventListener("pointerdown", handleClickOutside, true)
+    }
+  })
+
+  $effect(() => {
+    const phase = uploadSessionState.phase
+    if (phase === "uploading") {
+      clearDismissTimer()
+    } else if (
+      phase === "success" ||
+      phase === "partial" ||
+      phase === "error" ||
+      phase === "cancelled" ||
+      phase === "validation"
+    ) {
+      startDismissTimer()
+    }
+  })
+
+  onDestroy(() => {
+    clearDismissTimer()
+  })
 
   function handleFolderCreated() {
     showNewFolder = false
@@ -53,6 +143,7 @@
     <button
       type="button"
       class="upload-button"
+      bind:this={anchorEl}
       onclick={onUploadClick}
       disabled={uploadInProgress}
       aria-busy={uploadInProgress}
@@ -65,6 +156,25 @@
   {/if}
 </div>
 
+{#if showPanel}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="upload-panel"
+    bind:this={panelEl}
+    onmouseenter={handlePanelMouseEnter}
+    onmouseleave={handlePanelMouseLeave}
+    onfocusin={handlePanelFocusIn}
+    onfocusout={handlePanelFocusOut}
+  >
+    <UploadStatusCard
+      sessionState={uploadSessionState}
+      onCancel={onCancelUpload}
+      onRetryFailed={handleRetry}
+      onDismiss={onDismissUpload}
+    />
+  </div>
+{/if}
+
 <style>
   .action-buttons {
     display: flex;
@@ -72,6 +182,26 @@
     gap: 0.5rem;
     margin-left: auto;
     flex-wrap: wrap;
+  }
+
+  .upload-panel {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 100;
+    width: 480px;
+    animation: slide-up 0.15s ease-out;
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .new-folder-button {
@@ -197,6 +327,13 @@
 
     .upload-icon {
       font-size: 1rem;
+    }
+
+    .upload-panel {
+      right: 0.5rem;
+      left: 0.5rem;
+      bottom: 0.5rem;
+      width: auto;
     }
   }
 </style>

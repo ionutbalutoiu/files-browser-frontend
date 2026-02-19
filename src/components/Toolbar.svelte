@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { SortField, SortState } from "../lib/types"
+  import type { UploadSessionState } from "../lib/stores/uploadSession.svelte"
   import ToolbarSearch from "./toolbar/ToolbarSearch.svelte"
   import ToolbarSortControls from "./toolbar/ToolbarSortControls.svelte"
   import ToolbarActionButtons from "./toolbar/ToolbarActionButtons.svelte"
@@ -10,11 +11,15 @@
     uploadInProgress: boolean
     currentPath: string
     selectedCount: number
+    uploadSessionState: UploadSessionState
     onSearchChange: (search: string) => void
     onSortChange: (field: SortField) => void
     onUploadClick: () => void
     onDirectoryCreated: () => void
     onCancelSelection: () => void
+    onCancelUpload: () => void
+    onRetryFailedUpload: () => void
+    onDismissUpload: () => void
   }
 
   let {
@@ -23,11 +28,15 @@
     uploadInProgress,
     currentPath,
     selectedCount,
+    uploadSessionState,
     onSearchChange,
     onSortChange,
     onUploadClick,
     onDirectoryCreated,
     onCancelSelection,
+    onCancelUpload,
+    onRetryFailedUpload,
+    onDismissUpload,
   }: Props = $props()
 </script>
 
@@ -38,9 +47,13 @@
     {uploadInProgress}
     {currentPath}
     {selectedCount}
+    {uploadSessionState}
     {onUploadClick}
     {onDirectoryCreated}
     {onCancelSelection}
+    {onCancelUpload}
+    {onRetryFailedUpload}
+    {onDismissUpload}
   />
 </div>
 

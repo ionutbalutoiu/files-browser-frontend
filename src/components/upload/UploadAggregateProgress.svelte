@@ -43,7 +43,7 @@
 
 <style>
   .progress-row {
-    margin-top: 0.75rem;
+    margin-top: 0.45rem;
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -76,7 +76,7 @@
   }
 
   .queue-metrics {
-    margin-top: 0.65rem;
+    margin-top: 0.35rem;
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;

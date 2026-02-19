@@ -52,19 +52,19 @@
 
 <style>
   .file-progress-list {
-    margin: 0.75rem 0 0;
+    margin: 0.4rem 0 0;
     padding: 0;
     list-style: none;
     display: grid;
-    gap: 0.55rem;
-    max-height: 12rem;
+    gap: 0.35rem;
+    max-height: 8rem;
     overflow: auto;
   }
 
   .file-progress-item {
     border: 1px solid var(--color-border-light);
     border-radius: 6px;
-    padding: 0.45rem 0.55rem;
+    padding: 0.3rem 0.5rem;
     background: var(--color-bg);
   }
 
@@ -73,7 +73,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.6rem;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.2rem;
   }
 
   .file-progress-name {

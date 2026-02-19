@@ -44,10 +44,7 @@
 </script>
 
 <div class="status-header">
-  <div>
-    <p class="status-label">Upload status</p>
-    <h2 class="status-title">{getHeading(phase)}</h2>
-  </div>
+  <h2 class="status-title">{getHeading(phase)}</h2>
 
   <div class="header-actions">
     {#if phase === "uploading"}
@@ -65,9 +62,9 @@
           type="button"
           class="status-btn"
           onclick={onRetryFailed}
-          aria-label="Retry failed uploads"
+          aria-label="Retry uploads"
         >
-          Retry failed
+          Retry
         </button>
       {/if}
       <button
@@ -91,22 +88,15 @@
   .status-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .status-label {
-    margin: 0;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--color-muted);
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .status-title {
-    margin: 0.2rem 0 0;
-    font-size: 1rem;
+    margin: 0;
+    font-size: 0.9rem;
     line-height: 1.3;
+    white-space: nowrap;
   }
 
   .header-actions {
@@ -150,9 +140,9 @@
   }
 
   .status-meta {
-    margin: 0.65rem 0 0;
+    margin: 0.35rem 0 0;
     color: var(--color-muted);
-    font-size: 0.9rem;
+    font-size: 0.82rem;
   }
 
   .status-meta code {

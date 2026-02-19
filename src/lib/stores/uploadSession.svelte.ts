@@ -89,7 +89,7 @@ function normalizeErrorMessage(error: unknown): string {
 
 function updateCanRetryFailed(): void {
   sessionState.canRetryFailed = sessionState.files.some(
-    (item) => item.status === "error",
+    (item) => item.status === "error" || item.status === "cancelled",
   )
 }
 
@@ -317,7 +317,7 @@ export async function retryFailedUploads(): Promise<void> {
   if (sessionState.phase === "uploading") return
 
   const retryIndexes = sessionState.files
-    .filter((file) => file.status === "error")
+    .filter((file) => file.status === "error" || file.status === "cancelled")
     .map((file) => Number(file.id))
     .filter((index) => Number.isInteger(index) && index >= 0)
 

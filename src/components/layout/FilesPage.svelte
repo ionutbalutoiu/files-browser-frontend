@@ -8,7 +8,6 @@
   import type { UploadSessionState } from "../../lib/stores/uploadSession.svelte"
   import Toolbar from "../Toolbar.svelte"
   import { FileTable } from "../FileTable"
-  import UploadStatus from "../UploadStatus.svelte"
   import { LoadingState, ErrorState } from "../shared"
 
   interface Props {
@@ -69,8 +68,6 @@
 
   let uploadInput = $state<HTMLInputElement | null>(null)
 
-  let showUploadStatus = $derived(uploadSessionState.phase !== "hidden")
-
   function openUploadPicker() {
     if (uploadInProgress) return
     uploadInput?.click()
@@ -92,11 +89,15 @@
   {uploadInProgress}
   {currentPath}
   {selectedCount}
+  {uploadSessionState}
   {onSearchChange}
   {onSortChange}
   onUploadClick={openUploadPicker}
   {onDirectoryCreated}
   {onCancelSelection}
+  {onCancelUpload}
+  {onRetryFailedUpload}
+  {onDismissUpload}
 />
 
 <input
@@ -108,15 +109,6 @@
   aria-hidden="true"
   onchange={handleUploadSelection}
 />
-
-{#if showUploadStatus}
-  <UploadStatus
-    sessionState={uploadSessionState}
-    onCancel={onCancelUpload}
-    onRetryFailed={onRetryFailedUpload}
-    onDismiss={onDismissUpload}
-  />
-{/if}
 
 {#if loading}
   <LoadingState message="Loading directory..." />

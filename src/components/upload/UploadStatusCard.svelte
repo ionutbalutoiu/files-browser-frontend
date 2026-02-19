@@ -75,13 +75,13 @@
 
 <style>
   .upload-status {
-    margin: 0.85rem 0 1rem;
-    padding: 1rem;
+    margin: 0;
+    padding: 0.65rem 0.85rem;
     border: 1px solid var(--color-border);
     border-left-width: 4px;
     border-radius: 8px;
     background: var(--color-bg);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   }
 
   .upload-status.tone-info {

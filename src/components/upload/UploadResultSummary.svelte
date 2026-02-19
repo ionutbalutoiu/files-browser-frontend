@@ -78,14 +78,14 @@
 
 <style>
   .metrics {
-    margin-top: 0.8rem;
+    margin-top: 0.4rem;
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
   }
 
   .list-label {
-    margin: 0.7rem 0 0.35rem;
+    margin: 0.4rem 0 0.2rem;
     font-size: 0.82rem;
     font-weight: 600;
   }
@@ -94,9 +94,9 @@
     margin: 0;
     padding-left: 1rem;
     display: grid;
-    gap: 0.2rem;
-    font-size: 0.85rem;
-    max-height: 7.25rem;
+    gap: 0.15rem;
+    font-size: 0.82rem;
+    max-height: 5rem;
     overflow: auto;
   }
 
